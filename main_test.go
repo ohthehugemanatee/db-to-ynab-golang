@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"regexp"
 	"testing"
+
+	"gopkg.in/h2non/gock.v1"
 )
 
 func TestRootHandler(t *testing.T) {
@@ -21,6 +23,20 @@ func TestAuthorizedHandler(t *testing.T) {
 	// Failure with an empty "code" parameter
 	responseRecorder := runDummyRequest(t, "GET", "/authorized", AuthorizedHandler)
 	assertStatus(t, http.StatusInternalServerError, responseRecorder.Code)
+	// Pass with a code.
+	defer gock.Off()
+	gock.New("https://simulator-api.db.com").
+		Post("/gw/oidc/token").
+		Reply(200).
+		JSON(map[string]string{"access_token": "ACCESS_TOKEN", "token_type": "bearer"})
+
+	gock.New("https://simulator-api.db.com").
+		Post("/gw/oidc/token").
+		Reply(200).
+		JSON(map[string]string{"access_token": "ACCESS_TOKEN", "token_type": "bearer"})
+
+	responseRecorder = runDummyRequest(t, "GET", "/authorized?code=abcdef", AuthorizedHandler)
+	assertStatus(t, http.StatusFound, responseRecorder.Code)
 }
 
 func assertStatus(t *testing.T, expected int, got int) {
