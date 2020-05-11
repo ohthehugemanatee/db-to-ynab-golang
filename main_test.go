@@ -5,7 +5,9 @@ import (
 	"net/http/httptest"
 	"regexp"
 	"testing"
+	"time"
 
+	"golang.org/x/oauth2"
 	"gopkg.in/h2non/gock.v1"
 )
 
@@ -37,6 +39,27 @@ func TestAuthorizedHandler(t *testing.T) {
 
 	responseRecorder = runDummyRequest(t, "GET", "/authorized?code=abcdef", AuthorizedHandler)
 	assertStatus(t, http.StatusFound, responseRecorder.Code)
+}
+
+func TestGetTransactions(t *testing.T) {
+	defer gock.Off()
+	iban := "test-iban"
+	expected := "test-iban"
+	currentToken = &oauth2.Token{
+		AccessToken: "ACCESS_TOKEN",
+		Expiry:      time.Now().AddDate(1, 0, 0)}
+	gock.New("https://simulator-api.db.com").
+		Get("/gw/dbapi/banking/transactions/v2/").
+		MatchParam("iban", iban).
+		MatchParam("bookingDateFrom", "2019-11-01").
+		MatchHeader("Authorization", "^Bearer (.*)$").
+		Reply(200).
+		BodyString(expected)
+	result := GetTransactions(iban)
+	if result != expected {
+		t.Errorf("Got wrong value: got %v want %v",
+			result, expected)
+	}
 }
 
 func assertStatus(t *testing.T, expected int, got int) {

@@ -37,7 +37,7 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	if currentToken.Valid() {
 		fmt.Fprintf(w, "Already authorized")
 		iban := os.Getenv("DB_IBAN")
-		fmt.Fprintf(w, getTransactions(iban))
+		fmt.Fprintf(w, GetTransactions(iban))
 		return
 	}
 	url := oauth2Conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
@@ -61,7 +61,8 @@ func AuthorizedHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-func getTransactions(iban string) string {
+// GetTransactions gets transactions from DB.
+func GetTransactions(iban string) string {
 	transactions, err := oauth2Conf.Client(oauth2HttpContext, currentToken).Get("https://simulator-api.db.com/gw/dbapi/banking/transactions/v2/?bookingDateFrom=2019-11-01&iban=" + iban)
 	if err != nil {
 		log.Fatal(err)
