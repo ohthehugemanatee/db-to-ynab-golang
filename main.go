@@ -19,6 +19,7 @@ var oauth2Conf = &oauth2.Config{
 		TokenURL: "https://simulator-api.db.com/gw/oidc/token",
 	},
 }
+var oauth2HttpContext context.Context = context.Background()
 
 var currentToken = &oauth2.Token{}
 
@@ -39,13 +40,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func receiveHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
 	var code string = r.URL.Query().Get("code")
 
 	if code == "" {
 		log.Fatal("Code returned was empty")
 	}
-	tok, err := oauth2Conf.Exchange(ctx, code)
+	tok, err := oauth2Conf.Exchange(oauth2HttpContext, code)
 	if err != nil {
 		log.Fatal(err)
 	}
