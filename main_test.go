@@ -22,23 +22,26 @@ func TestRootHandler(t *testing.T) {
 }
 
 func TestAuthorizedHandler(t *testing.T) {
-	// Failure with an empty "code" parameter
-	responseRecorder := runDummyRequest(t, "GET", "/authorized", AuthorizedHandler)
-	assertStatus(t, http.StatusInternalServerError, responseRecorder.Code)
-	// Pass with a code.
-	defer gock.Off()
-	gock.New("https://simulator-api.db.com").
-		Post("/gw/oidc/token").
-		Reply(200).
-		JSON(map[string]string{"access_token": "ACCESS_TOKEN", "token_type": "bearer"})
+	t.Run("Failure with an empty \"code\" parameter", func(t *testing.T) {
+		t.Parallel()
+		responseRecorder := runDummyRequest(t, "GET", "/authorized", AuthorizedHandler)
+		assertStatus(t, http.StatusInternalServerError, responseRecorder.Code)
+	})
+	t.Run("Pass with a valid code parameter", func(t *testing.T) {
+		defer gock.Off()
+		gock.New("https://simulator-api.db.com").
+			Post("/gw/oidc/token").
+			Reply(200).
+			JSON(map[string]string{"access_token": "ACCESS_TOKEN", "token_type": "bearer"})
 
-	gock.New("https://simulator-api.db.com").
-		Post("/gw/oidc/token").
-		Reply(200).
-		JSON(map[string]string{"access_token": "ACCESS_TOKEN", "token_type": "bearer"})
+		gock.New("https://simulator-api.db.com").
+			Post("/gw/oidc/token").
+			Reply(200).
+			JSON(map[string]string{"access_token": "ACCESS_TOKEN", "token_type": "bearer"})
 
-	responseRecorder = runDummyRequest(t, "GET", "/authorized?code=abcdef", AuthorizedHandler)
-	assertStatus(t, http.StatusFound, responseRecorder.Code)
+		responseRecorder := runDummyRequest(t, "GET", "/authorized?code=abcdef", AuthorizedHandler)
+		assertStatus(t, http.StatusFound, responseRecorder.Code)
+	})
 }
 
 func TestGetTransactions(t *testing.T) {
