@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 
 func main() {
 	http.HandleFunc("/", handler)
+	http.HandleFunc("/authorized", receiveHandler)
 	log.Fatal(http.ListenAndServe(":3000", nil))
 }
 
@@ -36,23 +38,21 @@ func getConf() *oauth2.Config {
 	return conf
 }
 
-/**
-func receiver() {
+func receiveHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-
+	conf := getConf()
 	// Use the authorization code that is pushed to the redirect
 	// URL. Exchange will do the handshake to retrieve the
 	// initial access token. The HTTP Client returned by
 	// conf.Client will refresh the token as necessary.
-	var code string
-	if _, err := fmt.Scan(&code); err != nil {
-		log.Fatal(err)
+	var code string = r.URL.Query().Get("code")
+
+	if code == "" {
+		log.Fatal("Code returned was empty")
 	}
 	tok, err := conf.Exchange(ctx, code)
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Printf(tok.TokenType)
-
 }
-*/
