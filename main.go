@@ -26,7 +26,7 @@ var currentToken = &oauth2.Token{}
 
 func main() {
 	http.HandleFunc("/", RootHandler)
-	http.HandleFunc("/authorized", receiveHandler)
+	http.HandleFunc("/authorized", AuthorizedHandler)
 	log.Fatal(http.ListenAndServe(":3000", nil))
 	fmt.Printf("Listening for input")
 }
@@ -44,11 +44,14 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Authenticate with <a href=\"%v\">Deutsche Bank</a>", url)
 }
 
-func receiveHandler(w http.ResponseWriter, r *http.Request) {
+// AuthorizedHandler handles calls to /authorized
+func AuthorizedHandler(w http.ResponseWriter, r *http.Request) {
 	var code string = r.URL.Query().Get("code")
 
 	if code == "" {
-		log.Fatal("Code returned was empty")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("500 - Deutsche Bank returned an empty code."))
+		return
 	}
 	tok, err := oauth2Conf.Exchange(oauth2HttpContext, code)
 	if err != nil {

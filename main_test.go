@@ -26,3 +26,19 @@ func TestRootHandler(t *testing.T) {
 			responseRecorder.Body.String(), expected)
 	}
 }
+
+func TestAuthorizedHandler(t *testing.T) {
+	// Failure with an empty "code" parameter
+	request, err := http.NewRequest("GET", "/authorized", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	responseRecorder := httptest.NewRecorder()
+	handler := http.HandlerFunc(AuthorizedHandler)
+	handler.ServeHTTP(responseRecorder, request)
+	status := responseRecorder.Code
+	if status == http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+}
