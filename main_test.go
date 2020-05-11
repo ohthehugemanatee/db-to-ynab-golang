@@ -8,13 +8,7 @@ import (
 )
 
 func TestRootHandler(t *testing.T) {
-	request, err := http.NewRequest("GET", "/", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	responseRecorder := httptest.NewRecorder()
-	handler := http.HandlerFunc(RootHandler)
-	handler.ServeHTTP(responseRecorder, request)
+	responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
 	status := responseRecorder.Code
 	if status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v",
@@ -29,16 +23,21 @@ func TestRootHandler(t *testing.T) {
 
 func TestAuthorizedHandler(t *testing.T) {
 	// Failure with an empty "code" parameter
-	request, err := http.NewRequest("GET", "/authorized", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	responseRecorder := httptest.NewRecorder()
-	handler := http.HandlerFunc(AuthorizedHandler)
-	handler.ServeHTTP(responseRecorder, request)
+	responseRecorder := runDummyRequest(t, "GET", "/authorized", AuthorizedHandler)
 	status := responseRecorder.Code
 	if status == http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusOK)
 	}
+}
+
+func runDummyRequest(t *testing.T, verb string, path string, handlerFunc func(w http.ResponseWriter, r *http.Request)) httptest.ResponseRecorder {
+	request, err := http.NewRequest(verb, path, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	responseRecorder := httptest.NewRecorder()
+	handler := http.HandlerFunc(handlerFunc)
+	handler.ServeHTTP(responseRecorder, request)
+	return *responseRecorder
 }
