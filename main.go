@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -27,12 +28,15 @@ func main() {
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/authorized", receiveHandler)
 	log.Fatal(http.ListenAndServe(":3000", nil))
+	fmt.Printf("Listening for input")
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "<html><body>")
 	if currentToken.Valid() {
 		fmt.Fprintf(w, "Already authorized")
+		iban := os.Getenv("DB_IBAN")
+		fmt.Fprintf(w, getTransactions(iban))
 		return
 	}
 	url := oauth2Conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
@@ -50,4 +54,17 @@ func receiveHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 	currentToken = tok
+}
+
+func getTransactions(iban string) string {
+	transactions, err := oauth2Conf.Client(oauth2HttpContext, currentToken).Get("https://simulator-api.db.com/gw/dbapi/banking/transactions/v2/?bookingDateFrom=2019-11-01&iban=" + iban)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer transactions.Body.Close()
+	body, err := ioutil.ReadAll(transactions.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return string(body)
 }
