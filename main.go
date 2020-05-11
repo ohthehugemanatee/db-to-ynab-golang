@@ -30,8 +30,10 @@ func main() {
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "<html><body>")
-	// Redirect user to consent page to ask for permission
-	// for the scopes specified above.
+	if currentToken.Valid() {
+		fmt.Fprintf(w, "Already authorized")
+		return
+	}
 	url := oauth2Conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
 	fmt.Fprintf(w, "Authenticate with <a href=\"%v\">Deutsche Bank</a>", url)
 }
