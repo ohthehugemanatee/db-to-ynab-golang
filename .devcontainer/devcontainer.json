@@ -1,7 +1,8 @@
 {
 	"name": "Go",
 	"dockerFile": "Dockerfile",
-	"runArgs": [ "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined" ],
+	"runArgs": [ "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined", "--env-file=.devcontainer/.env" ],
+	"forwardPorts": [3000],
 
 	// Set *default* container specific settings.json values on container create.
 	"settings": { 
