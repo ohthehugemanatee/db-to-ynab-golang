@@ -25,13 +25,14 @@ var oauth2HttpContext context.Context = context.Background()
 var currentToken = &oauth2.Token{}
 
 func main() {
-	http.HandleFunc("/", handler)
+	http.HandleFunc("/", RootHandler)
 	http.HandleFunc("/authorized", receiveHandler)
 	log.Fatal(http.ListenAndServe(":3000", nil))
 	fmt.Printf("Listening for input")
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
+// RootHandler handles HTTP requests to /
+func RootHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "<html><body>")
 	if currentToken.Valid() {
 		fmt.Fprintf(w, "Already authorized")
