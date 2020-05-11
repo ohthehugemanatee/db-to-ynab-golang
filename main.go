@@ -54,6 +54,7 @@ func receiveHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 	currentToken = tok
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func getTransactions(iban string) string {
