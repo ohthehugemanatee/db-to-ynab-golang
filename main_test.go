@@ -9,11 +9,7 @@ import (
 
 func TestRootHandler(t *testing.T) {
 	responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
-	status := responseRecorder.Code
-	if status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
+	assertStatus(t, http.StatusOK, responseRecorder.Code)
 	expected := `<html><body>Authenticate with <a href="https://simulator-api.db.com/gw/oidc/authorize(.*)">Deutsche Bank</a>`
 	if match, _ := regexp.MatchString(expected, responseRecorder.Body.String()); match == false {
 		t.Errorf("handler returned unexpected body: got %v want %v",
@@ -24,10 +20,13 @@ func TestRootHandler(t *testing.T) {
 func TestAuthorizedHandler(t *testing.T) {
 	// Failure with an empty "code" parameter
 	responseRecorder := runDummyRequest(t, "GET", "/authorized", AuthorizedHandler)
-	status := responseRecorder.Code
-	if status == http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
+	assertStatus(t, http.StatusInternalServerError, responseRecorder.Code)
+}
+
+func assertStatus(t *testing.T, expected int, got int) {
+	if got != expected {
+		t.Errorf("Got wrong status code: got %v want %v",
+			got, expected)
 	}
 }
 
