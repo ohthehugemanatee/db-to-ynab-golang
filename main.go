@@ -42,6 +42,7 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	url := oauth2Conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
 	fmt.Fprintf(w, "Authenticate with <a href=\"%v\">Deutsche Bank</a>", url)
+	http.Redirect(w, r, url, http.StatusFound)
 }
 
 // AuthorizedHandler handles calls to /authorized
