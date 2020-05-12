@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -79,24 +80,34 @@ func GetTransactions(iban string) string {
 
 // ConvertTransactionToYNAB converts a transaction to YNAB format.
 func ConvertTransactionToYNAB(incomingTransaction string) transaction.PayloadTransaction {
-	date, err := api.DateFromString("2019-11-04")
+	type dbTransaction struct {
+		BookingDate      string
+		CounterPartyName string
+		PaymentReference string
+		ID               string
+		Amount           float32
+	}
+	var marshalledTransaction dbTransaction
+	err := json.Unmarshal([]byte(incomingTransaction), &marshalledTransaction)
 	if err != nil {
 		log.Fatal(err)
 	}
-	payee := string("Rossmann")
+	date, err := api.DateFromString(marshalledTransaction.BookingDate)
+	if err != nil {
+		log.Fatal(err)
+	}
+	amount := int64(marshalledTransaction.Amount * 1000)
 	category := string("5")
-	memo := string("POS MIT PIN. Mein Drogeriemarkt, Leipziger Str., 212+ZKLE 911/696682-X-ABC")
-	importID := string("_2FMRe0AhzLaZu14Cz-lol2H_DDY4z9yIOJKrDlDjHCSCjlJk4dfM_2MOWo6JSezeNJJz5Fm23hOEFccXR0AXmZFmyFv_dI6xHu-DADUYh-_ue-2e1let853sS4-glBM")
 	expected := transaction.PayloadTransaction{
 		AccountID:  "account-id",
 		Date:       date,
-		Amount:     -19050,
-		PayeeName:  &payee,
+		Amount:     amount,
+		PayeeName:  &marshalledTransaction.CounterPartyName,
 		CategoryID: &category,
-		Memo:       &memo,
+		Memo:       &marshalledTransaction.PaymentReference,
 		Cleared:    transaction.ClearingStatusCleared,
 		Approved:   false,
-		ImportID:   &importID,
+		ImportID:   &marshalledTransaction.ID,
 	}
 	return expected
 }
