@@ -13,27 +13,27 @@ import (
 
 // YNABTransaction is a transaction in YNAB.
 type YNABTransaction struct {
-	accountID       string
-	date            string
-	amount          int
-	payeeID         string
-	payeeName       string
-	categoryID      string
-	memo            string
-	cleared         string
-	approved        bool
-	flagColor       string
-	importID        string
-	subtransactions []YNABSubtransaction
+	AccountID       string
+	Date            string
+	Amount          int
+	PayeeID         string
+	PayeeName       string
+	CategoryID      string
+	Memo            string
+	Cleared         string
+	Approved        bool
+	FlagColor       string
+	ImportID        string
+	Subtransactions []YNABSubtransaction
 }
 
 // YNABSubtransaction is a sub-transaction in YNAB.
 type YNABSubtransaction struct {
-	amount     int
-	payeeID    string
-	payeeName  string
-	categoryID string
-	memo       string
+	Amount     int
+	PayeeID    string
+	PayeeName  string
+	CategoryID string
+	Memo       string
 }
 
 var oauth2Conf = &oauth2.Config{
