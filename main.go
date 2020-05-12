@@ -22,6 +22,10 @@ type dbTransaction struct {
 	Amount           float32
 }
 
+type dbTransactionsList struct {
+	Transactions []dbTransaction
+}
+
 var oauth2Conf = &oauth2.Config{
 	ClientID:     os.Getenv("DB_CLIENT_ID"),
 	ClientSecret: os.Getenv("DB_CLIENT_SECRET"),
@@ -48,7 +52,13 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	if currentToken.Valid() {
 		fmt.Fprintf(w, "Already authorized")
 		iban := os.Getenv("DB_IBAN")
-		fmt.Fprintf(w, GetTransactions(iban))
+		dbTransactions := GetTransactions(iban)
+		convertedTransactions := convertTransactionsToYNAB(dbTransactions)
+		marshalledOutput, err := json.Marshal(convertedTransactions)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Fprintf(w, string(marshalledOutput))
 		return
 	}
 	url := oauth2Conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
@@ -86,28 +96,37 @@ func GetTransactions(iban string) string {
 	return string(body)
 }
 
-// ConvertTransactionToYNAB converts a transaction to YNAB format.
-func ConvertTransactionToYNAB(incomingTransaction string) transaction.PayloadTransaction {
-	var marshalledTransaction dbTransaction
-	err := json.Unmarshal([]byte(incomingTransaction), &marshalledTransaction)
+func convertTransactionsToYNAB(incomingTransactions string) []transaction.PayloadTransaction {
+	var marshalledTransactions dbTransactionsList
+	err := json.Unmarshal([]byte(incomingTransactions), &marshalledTransactions)
 	if err != nil {
 		log.Fatal(err)
 	}
-	date, err := api.DateFromString(marshalledTransaction.BookingDate)
+	var convertedTransactions []transaction.PayloadTransaction
+	for _, transaction := range marshalledTransactions.Transactions {
+		convertedTransactions = append(convertedTransactions, ConvertTransactionToYNAB(transaction))
+	}
+	return convertedTransactions
+}
+
+// ConvertTransactionToYNAB converts a transaction to YNAB format.
+func ConvertTransactionToYNAB(incomingTransaction dbTransaction) transaction.PayloadTransaction {
+
+	date, err := api.DateFromString(incomingTransaction.BookingDate)
 	if err != nil {
 		log.Fatal(err)
 	}
 	// Amount must be in YNAB "milliunits".
-	amount := int64(marshalledTransaction.Amount * 1000)
+	amount := int64(incomingTransaction.Amount * 1000)
 	transaction := transaction.PayloadTransaction{
 		AccountID: "account-id",
 		Date:      date,
 		Amount:    amount,
-		PayeeName: &marshalledTransaction.CounterPartyName,
-		Memo:      &marshalledTransaction.PaymentReference,
+		PayeeName: &incomingTransaction.CounterPartyName,
+		Memo:      &incomingTransaction.PaymentReference,
 		Cleared:   transaction.ClearingStatusCleared,
 		Approved:  false,
-		ImportID:  &marshalledTransaction.ID,
+		ImportID:  &incomingTransaction.ID,
 	}
 	return transaction
 }
