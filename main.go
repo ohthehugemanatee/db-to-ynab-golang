@@ -11,6 +11,31 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// YNABTransaction is a transaction in YNAB.
+type YNABTransaction struct {
+	accountID       string
+	date            string
+	amount          int
+	payeeID         string
+	payeeName       string
+	categoryID      string
+	memo            string
+	cleared         string
+	approved        bool
+	flagColor       string
+	importID        string
+	subtransactions []YNABSubtransaction
+}
+
+// YNABSubtransaction is a sub-transaction in YNAB.
+type YNABSubtransaction struct {
+	amount     int
+	payeeID    string
+	payeeName  string
+	categoryID string
+	memo       string
+}
+
 var oauth2Conf = &oauth2.Config{
 	ClientID:     os.Getenv("DB_CLIENT_ID"),
 	ClientSecret: os.Getenv("DB_CLIENT_SECRET"),
@@ -41,7 +66,7 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	url := oauth2Conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
-	fmt.Fprintf(w, "Authenticate with <a href=\"%v\">Deutsche Bank</a>", url)
+	//fmt.Fprintf(w, "Authenticate with <a href=\"%v\">Deutsche Bank</a>", url)
 	http.Redirect(w, r, url, http.StatusFound)
 }
 
