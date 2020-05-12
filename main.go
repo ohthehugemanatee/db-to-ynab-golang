@@ -99,17 +99,15 @@ func ConvertTransactionToYNAB(incomingTransaction string) transaction.PayloadTra
 	}
 	// Amount must be in YNAB "milliunits".
 	amount := int64(marshalledTransaction.Amount * 1000)
-	category := string("5")
 	transaction := transaction.PayloadTransaction{
-		AccountID:  "account-id",
-		Date:       date,
-		Amount:     amount,
-		PayeeName:  &marshalledTransaction.CounterPartyName,
-		CategoryID: &category,
-		Memo:       &marshalledTransaction.PaymentReference,
-		Cleared:    transaction.ClearingStatusCleared,
-		Approved:   false,
-		ImportID:   &marshalledTransaction.ID,
+		AccountID: "account-id",
+		Date:      date,
+		Amount:    amount,
+		PayeeName: &marshalledTransaction.CounterPartyName,
+		Memo:      &marshalledTransaction.PaymentReference,
+		Cleared:   transaction.ClearingStatusCleared,
+		Approved:  false,
+		ImportID:  &marshalledTransaction.ID,
 	}
 	return transaction
 }
