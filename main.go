@@ -8,33 +8,10 @@ import (
 	"net/http"
 	"os"
 
+	"go.bmvs.io/ynab/api"
+	"go.bmvs.io/ynab/api/transaction"
 	"golang.org/x/oauth2"
 )
-
-// YNABTransaction is a transaction in YNAB.
-type YNABTransaction struct {
-	AccountID       string
-	Date            string
-	Amount          int
-	PayeeID         string
-	PayeeName       string
-	CategoryID      string
-	Memo            string
-	Cleared         string
-	Approved        bool
-	FlagColor       string
-	ImportID        string
-	Subtransactions []YNABSubtransaction
-}
-
-// YNABSubtransaction is a sub-transaction in YNAB.
-type YNABSubtransaction struct {
-	Amount     int
-	PayeeID    string
-	PayeeName  string
-	CategoryID string
-	Memo       string
-}
 
 var oauth2Conf = &oauth2.Config{
 	ClientID:     os.Getenv("DB_CLIENT_ID"),
@@ -98,4 +75,28 @@ func GetTransactions(iban string) string {
 		log.Fatal(err)
 	}
 	return string(body)
+}
+
+// ConvertTransactionToYNAB converts a transaction to YNAB format.
+func ConvertTransactionToYNAB(incomingTransaction string) transaction.PayloadTransaction {
+	date, err := api.DateFromString("2019-11-04")
+	if err != nil {
+		log.Fatal(err)
+	}
+	payee := string("Rossmann")
+	category := string("5")
+	memo := string("POS MIT PIN. Mein Drogeriemarkt, Leipziger Str., 212+ZKLE 911/696682-X-ABC")
+	importID := string("_2FMRe0AhzLaZu14Cz-lol2H_DDY4z9yIOJKrDlDjHCSCjlJk4dfM_2MOWo6JSezeNJJz5Fm23hOEFccXR0AXmZFmyFv_dI6xHu-DADUYh-_ue-2e1let853sS4-glBM")
+	expected := transaction.PayloadTransaction{
+		AccountID:  "account-id",
+		Date:       date,
+		Amount:     -19050,
+		PayeeName:  &payee,
+		CategoryID: &category,
+		Memo:       &memo,
+		Cleared:    transaction.ClearingStatusCleared,
+		Approved:   false,
+		ImportID:   &importID,
+	}
+	return expected
 }
