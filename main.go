@@ -78,7 +78,7 @@ func GetTransactions(iban string) string {
 }
 
 // ConvertTransactionToYNAB converts a transaction to YNAB format.
-func ConvertTransactionToYNAB(incomingTransaction string) transaction.PayloadTransaction {
+func ConvertTransactionToYNAB(incomingTransaction interface{}) transaction.PayloadTransaction {
 	date, err := api.DateFromString("2019-11-04")
 	if err != nil {
 		log.Fatal(err)
