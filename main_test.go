@@ -74,7 +74,7 @@ func TestConvertTransactionToYNAB(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	expected := string(`{"account_id":"account-id","date":"2019-11-04T00:00:00Z","amount":-19050,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Rossmann","category_id":"5","memo":"POS MIT PIN. Mein Drogeriemarkt, Leipziger Str., 212+ZKLE 911/696682-X-ABC","flag_color":null,"import_id":"_2FMRe0AhzLaZu14Cz-lol2H_DDY4z9yIOJKrDlDjHCSCjlJk4dfM_2MOWo6JSezeNJJz5Fm23hOEFccXR0AXmZFmyFv_dI6xHu-DADUYh-_ue-2e1let853sS4-glBM"}`)
+	expected := string(`{"account_id":"account-id","date":"2019-11-04T00:00:00Z","amount":-19050,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Rossmann","category_id":"5","memo":"POS MIT PIN. Mein Drogeriemarkt, Leipziger Str.","flag_color":null,"import_id":"_2FMRe0AhzLaZu14Cz-lol2H_DDY4z9yIOJKrDlDjHCSCjlJk4dfM_2MOWo6JSezeNJJz5Fm23hOEFccXR0AXmZFmyFv_dI6xHu-DADUYh-_ue-2e1let853sS4-glBM"}`)
 	if string(output) != expected {
 		t.Errorf("Got wrong value: got %v wanted %v", output, expected)
 	}
