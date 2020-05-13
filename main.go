@@ -61,6 +61,9 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Already authorized")
 	iban := os.Getenv("DB_IBAN")
 	dbTransactions := GetTransactions(iban)
+	if dbTransactions == "" {
+		return
+	}
 	convertedTransactions := convertTransactionsToYNAB(dbTransactions)
 	PostTransactionsToYNAB(os.Getenv("YNAB_SECRET"), os.Getenv("YNAB_BUDGET_ID"), convertedTransactions)
 	fmt.Fprint(w, "Posted transactions to YNAB")
