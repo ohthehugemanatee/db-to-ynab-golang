@@ -88,7 +88,7 @@ func AuthorizedHandler(w http.ResponseWriter, r *http.Request) {
 
 // GetTransactions gets transactions from DB.
 func GetTransactions(iban string) string {
-	transactions, err := oauth2Conf.Client(oauth2HttpContext, currentToken).Get("https://simulator-api.db.com/gw/dbapi/banking/transactions/v2/?bookingDateFrom=2019-11-01&iban=" + iban)
+	transactions, err := oauth2Conf.Client(oauth2HttpContext, currentToken).Get("https://simulator-api.db.com/gw/dbapi/banking/transactions/v2/?limit=100&iban=" + iban)
 	if err != nil {
 		log.Fatal(err)
 	}

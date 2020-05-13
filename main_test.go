@@ -57,7 +57,7 @@ func TestGetTransactions(t *testing.T) {
 	gock.New("https://simulator-api.db.com").
 		Get("/gw/dbapi/banking/transactions/v2/").
 		MatchParam("iban", iban).
-		MatchParam("bookingDateFrom", "2019-11-01").
+		MatchParam("limit", "100").
 		MatchHeader("Authorization", "^Bearer (.*)$").
 		Reply(200).
 		BodyString(expected)
