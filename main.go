@@ -52,18 +52,18 @@ func main() {
 
 // RootHandler handles HTTP requests to /
 func RootHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "<html><body>")
-	if currentToken.Valid() {
-		fmt.Fprintf(w, "Already authorized")
-		iban := os.Getenv("DB_IBAN")
-		dbTransactions := GetTransactions(iban)
-		convertedTransactions := convertTransactionsToYNAB(dbTransactions)
-		PostTransactionsToYNAB(os.Getenv("YNAB_SECRET"), os.Getenv("YNAB_BUDGET_ID"), convertedTransactions)
-		fmt.Fprint(w, "Posted transactions to YNAB")
+	if currentToken.RefreshToken == "" {
+		url := oauth2Conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
+		http.Redirect(w, r, url, http.StatusFound)
 		return
 	}
-	url := oauth2Conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
-	http.Redirect(w, r, url, http.StatusFound)
+	fmt.Fprintf(w, "<html><body>")
+	fmt.Fprintf(w, "Already authorized")
+	iban := os.Getenv("DB_IBAN")
+	dbTransactions := GetTransactions(iban)
+	convertedTransactions := convertTransactionsToYNAB(dbTransactions)
+	PostTransactionsToYNAB(os.Getenv("YNAB_SECRET"), os.Getenv("YNAB_BUDGET_ID"), convertedTransactions)
+	fmt.Fprint(w, "Posted transactions to YNAB")
 }
 
 // AuthorizedHandler handles calls to /authorized
