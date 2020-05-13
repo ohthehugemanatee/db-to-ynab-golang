@@ -34,6 +34,9 @@ It syncs the most recent 10 transactions since a fixed date, based on the transa
 
 ### TODO
 
-* sync most recent 100 transactions every time - the transaction IDs will prevent creating duplicates, and we can bulk upload to YNAB in a single API call.
-* sync upcoming transactions which haven't posted yet
+* update tests for full set of `/` behaviors.
+* refactor a bit for clarity.
+* include dockerfile in the repo
 * sync credit card accounts, too.
+* sync upcoming transactions which haven't posted yet.
+* publish on docker hub
