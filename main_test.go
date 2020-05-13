@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"regexp"
 	"testing"
 	"time"
@@ -68,6 +69,7 @@ func TestGetTransactions(t *testing.T) {
 }
 
 func TestConvertTransactionToYNAB(t *testing.T) {
+	os.Setenv("YNAB_ACCOUNT_ID", "account-id")
 	inputString := []byte(`{"originIban":"DE10010000000000006136","amount":-19.05,"paymentReference":"POS MIT PIN. Mein Drogeriemarkt, Leipziger Str.","counterPartyName":"Rossmann","transactionCode":"123","valueDate":"2018-04-23","counterPartyIban":"","paymentIdentification":"212+ZKLE 911/696682-X-ABC","mandateReference":"MX0355443","externalBankTransactionDomainCode":"D001","externalBankTransactionFamilyCode":"CCRD","externalBankTransactionSubFamilyCode":"CWDL","bookingDate":"2019-11-04","id":"_2FMRe0AhzLaZu14Cz-lol2H_DDY4z9yIOJKrDlDjHCSCjlJk4dfM_2MOWo6JSezeNJJz5Fm23hOEFccXR0AXmZFmyFv_dI6xHu-DADUYh-_ue-2e1let853sS4-glBM","e2eReference":"E2E - Reference","currencyCode":"EUR","creditorId":"DE0222200004544221"}`)
 	var input dbTransaction
 	_ = json.Unmarshal(inputString, &input)
@@ -77,7 +79,7 @@ func TestConvertTransactionToYNAB(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	expected := string(`{"account_id":"account-id","date":"2019-11-04T00:00:00Z","amount":-19050,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Rossmann","category_id":null,"memo":"POS MIT PIN. Mein Drogeriemarkt, Leipziger Str.","flag_color":null,"import_id":"_2FMRe0AhzLaZu14Cz-lol2H_DDY4z9yIOJKrDlDjHCSCjlJk4dfM_2MOWo6JSezeNJJz5Fm23hOEFccXR0AXmZFmyFv_dI6xHu-DADUYh-_ue-2e1let853sS4-glBM"}`)
+	expected := string(`{"account_id":"account-id","date":"2019-11-04T00:00:00Z","amount":-19050,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Rossmann","category_id":null,"memo":"POS MIT PIN. Mein Drogeriemarkt, Leipziger Str.","flag_color":null,"import_id":"4b57e244083bddaef7036b3f7d55c7cbf20d6a7776d25de5aa4f44247331ee91"}`)
 	if output != expected {
 		t.Errorf("Got wrong value: got %v wanted %v", output, expected)
 	}
