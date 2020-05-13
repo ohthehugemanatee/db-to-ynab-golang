@@ -27,3 +27,13 @@ NB:
 * The token received from DB is good for a month, updated each time you run the sync. So as long as you're sync'ing more than once a month, you should only have to manually enter credentials once. 
 * The token is kept in memory only; when you restart the application you will need to authenticate again.
 * The transactions created by this sync engine will be duplicated if you run manual CSV imports using the interface.
+
+## Current status
+
+It syncs the most recent 10 transactions since a fixed date, based on the transactions in the test account I got from DB.
+
+### TODO
+
+* sync most recent 100 transactions every time - the transaction IDs will prevent creating duplicates, and we can bulk upload to YNAB in a single API call.
+* sync upcoming transactions which haven't posted yet
+* sync credit card accounts, too.
