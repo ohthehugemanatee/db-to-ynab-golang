@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"regexp"
 	"testing"
 	"time"
 
@@ -16,12 +15,7 @@ import (
 
 func TestRootHandler(t *testing.T) {
 	responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
-	assertStatus(t, http.StatusOK, responseRecorder.Code)
-	expected := `<html><body>Authenticate with <a href="https://simulator-api.db.com/gw/oidc/authorize(.*)">Deutsche Bank</a>`
-	if match, _ := regexp.MatchString(expected, responseRecorder.Body.String()); match == false {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			responseRecorder.Body.String(), expected)
-	}
+	assertStatus(t, http.StatusFound, responseRecorder.Code)
 }
 
 func TestAuthorizedHandler(t *testing.T) {
