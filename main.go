@@ -14,6 +14,8 @@ import (
 	"golang.org/x/oauth2"
 )
 
+type YNABTransaction = transaction.PayloadTransaction
+
 type dbTransaction struct {
 	BookingDate      string
 	CounterPartyName string
@@ -96,13 +98,13 @@ func GetTransactions(iban string) string {
 	return string(body)
 }
 
-func convertTransactionsToYNAB(incomingTransactions string) []transaction.PayloadTransaction {
+func convertTransactionsToYNAB(incomingTransactions string) []YNABTransaction {
 	var marshalledTransactions dbTransactionsList
 	err := json.Unmarshal([]byte(incomingTransactions), &marshalledTransactions)
 	if err != nil {
 		log.Fatal(err)
 	}
-	var convertedTransactions []transaction.PayloadTransaction
+	var convertedTransactions []YNABTransaction
 	for _, transaction := range marshalledTransactions.Transactions {
 		convertedTransactions = append(convertedTransactions, ConvertTransactionToYNAB(transaction))
 	}
@@ -110,7 +112,7 @@ func convertTransactionsToYNAB(incomingTransactions string) []transaction.Payloa
 }
 
 // ConvertTransactionToYNAB converts a transaction to YNAB format.
-func ConvertTransactionToYNAB(incomingTransaction dbTransaction) transaction.PayloadTransaction {
+func ConvertTransactionToYNAB(incomingTransaction dbTransaction) YNABTransaction {
 
 	date, err := api.DateFromString(incomingTransaction.BookingDate)
 	if err != nil {
@@ -118,7 +120,7 @@ func ConvertTransactionToYNAB(incomingTransaction dbTransaction) transaction.Pay
 	}
 	// Amount must be in YNAB "milliunits".
 	amount := int64(incomingTransaction.Amount * 1000)
-	transaction := transaction.PayloadTransaction{
+	transaction := YNABTransaction{
 		AccountID: "account-id",
 		Date:      date,
 		Amount:    amount,
