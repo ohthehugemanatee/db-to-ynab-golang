@@ -79,7 +79,7 @@ func TestConvertTransactionToYNAB(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	expected := string(`{"account_id":"account-id","date":"2019-11-04T00:00:00Z","amount":-19050,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Rossmann","category_id":null,"memo":"POS MIT PIN. Mein Drogeriemarkt, Leipziger Str.","flag_color":null,"import_id":"4b57e244083bddaef7036b3f7d55c7cbf20d6a7776d25de5aa4f44247331ee91"}`)
+	expected := string(`{"account_id":"account-id","date":"2019-11-04T00:00:00Z","amount":-19050,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Rossmann","category_id":null,"memo":"POS MIT PIN. Mein Drogeriemarkt, Leipziger Str.","flag_color":null,"import_id":"4b57e244083bddaef7036b3f7d55c7cb"}`)
 	if output != expected {
 		t.Errorf("Got wrong value: got %v wanted %v", output, expected)
 	}

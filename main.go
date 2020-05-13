@@ -118,7 +118,7 @@ func ConvertTransactionToYNAB(incomingTransaction dbTransaction) YNABTransaction
 		log.Fatal(err)
 	}
 	sum := sha256.Sum256([]byte(incomingTransaction.ID))
-	importID := fmt.Sprintf("%x", sum)
+	importID := fmt.Sprintf("%x", sum)[0:32]
 	// Amount must be in YNAB "milliunits".
 	amount := int64(incomingTransaction.Amount * 1000)
 	transaction := YNABTransaction{
