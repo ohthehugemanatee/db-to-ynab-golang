@@ -64,7 +64,7 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	if dbTransactions == "" {
 		return
 	}
-	convertedTransactions := convertTransactionsToYNAB(dbTransactions)
+	convertedTransactions := ConvertTransactionsToYNAB(dbTransactions)
 	PostTransactionsToYNAB(os.Getenv("YNAB_SECRET"), os.Getenv("YNAB_BUDGET_ID"), convertedTransactions)
 	fmt.Fprint(w, "Posted transactions to YNAB")
 }
@@ -100,7 +100,8 @@ func GetTransactions(iban string) string {
 	return string(body)
 }
 
-func convertTransactionsToYNAB(incomingTransactions string) []YNABTransaction {
+// ConvertTransactionsToYNAB converts a JSON string of transaction to YNAB format.
+func ConvertTransactionsToYNAB(incomingTransactions string) []YNABTransaction {
 	var marshalledTransactions dbTransactionsList
 	err := json.Unmarshal([]byte(incomingTransactions), &marshalledTransactions)
 	if err != nil {
@@ -108,13 +109,12 @@ func convertTransactionsToYNAB(incomingTransactions string) []YNABTransaction {
 	}
 	var convertedTransactions []YNABTransaction
 	for _, transaction := range marshalledTransactions.Transactions {
-		convertedTransactions = append(convertedTransactions, ConvertTransactionToYNAB(transaction))
+		convertedTransactions = append(convertedTransactions, convertTransactionToYNAB(transaction))
 	}
 	return convertedTransactions
 }
 
-// ConvertTransactionToYNAB converts a transaction to YNAB format.
-func ConvertTransactionToYNAB(incomingTransaction dbTransaction) YNABTransaction {
+func convertTransactionToYNAB(incomingTransaction dbTransaction) YNABTransaction {
 
 	date, err := api.DateFromString(incomingTransaction.BookingDate)
 	if err != nil {
