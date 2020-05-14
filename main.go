@@ -106,9 +106,18 @@ func convertTransactionsToYNAB(incomingTransactions string) []YNABTransaction {
 	if err != nil {
 		log.Fatal(err)
 	}
+	transactions := marshalledTransactions.Transactions
 	var convertedTransactions []YNABTransaction
-	for _, transaction := range marshalledTransactions.Transactions {
-		convertedTransactions = append(convertedTransactions, ConvertTransactionToYNAB(transaction))
+	resultChannel := make(chan YNABTransaction)
+	defer close(resultChannel)
+	for _, transaction := range transactions {
+		go func(t dbTransaction) {
+			resultChannel <- ConvertTransactionToYNAB(transaction)
+		}(transaction)
+		for i := 0; i < len(transactions); i++ {
+			convertedTransaction := <-resultChannel
+			convertedTransactions = append(convertedTransactions, convertedTransaction)
+		}
 	}
 	return convertedTransactions
 }
