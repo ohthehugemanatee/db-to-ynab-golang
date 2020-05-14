@@ -47,7 +47,6 @@ func main() {
 	http.HandleFunc("/", RootHandler)
 	http.HandleFunc("/authorized", AuthorizedHandler)
 	log.Fatal(http.ListenAndServe(":3000", nil))
-	fmt.Printf("Listening for input")
 }
 
 // RootHandler handles HTTP requests to /
@@ -111,9 +110,10 @@ func ConvertTransactionsToYNAB(incomingTransactions string) []YNABTransaction {
 	var convertedTransactions []YNABTransaction
 	resultChannel := make(chan YNABTransaction)
 	defer close(resultChannel)
+	accountID := os.Getenv("YNAB_ACCOUNT_ID")
 	for _, transaction := range transactions {
 		go func(t dbTransaction) {
-			resultChannel <- convertTransactionToYNAB(transaction)
+			resultChannel <- convertTransactionToYNAB(accountID, transaction)
 		}(transaction)
 		for i := 0; i < len(transactions); i++ {
 			convertedTransaction := <-resultChannel
@@ -123,20 +123,16 @@ func ConvertTransactionsToYNAB(incomingTransactions string) []YNABTransaction {
 	return convertedTransactions
 }
 
-func convertTransactionToYNAB(incomingTransaction dbTransaction) YNABTransaction {
-
+func convertTransactionToYNAB(accountID string, incomingTransaction dbTransaction) YNABTransaction {
 	date, err := api.DateFromString(incomingTransaction.BookingDate)
 	if err != nil {
 		log.Fatal(err)
 	}
-	sum := sha256.Sum256([]byte(incomingTransaction.ID))
-	importID := fmt.Sprintf("%x", sum)[0:32]
-	// Amount must be in YNAB "milliunits".
-	amount := int64(incomingTransaction.Amount * 1000)
+	importID := createImportID(incomingTransaction.ID)
 	transaction := YNABTransaction{
-		AccountID: os.Getenv("YNAB_ACCOUNT_ID"),
+		AccountID: accountID,
 		Date:      date,
-		Amount:    amount,
+		Amount:    convertToMilliunits(incomingTransaction.Amount),
 		PayeeName: &incomingTransaction.CounterPartyName,
 		Memo:      &incomingTransaction.PaymentReference,
 		Cleared:   transaction.ClearingStatusCleared,
@@ -144,6 +140,17 @@ func convertTransactionToYNAB(incomingTransaction dbTransaction) YNABTransaction
 		ImportID:  &importID,
 	}
 	return transaction
+}
+
+// Creates a 32-character unique ID based on a given string.
+func createImportID(source string) string {
+	sum := sha256.Sum256([]byte(source))
+	importID := fmt.Sprintf("%x", sum)[0:32]
+	return importID
+}
+
+func convertToMilliunits(value float32) int64 {
+	return int64(value * 1000)
 }
 
 // PostTransactionsToYNAB posts transactions to YNAB.
