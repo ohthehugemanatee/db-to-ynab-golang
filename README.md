@@ -9,13 +9,13 @@ Set environment variables:
 ```
 DB_CLIENT_ID
 DB_CLIENT_SECRET
-DB_IBAN
+DB_ACCOUNT
 YNAB_SECRET
 YNAB_BUDGET_ID
 YNAB_ACCOUNT_ID
 ```
 
-You have to create an App at [developer.db.com](https://developer.db.com) to get the DB client ID and secret. Your IBAN you should know :) . 
+You have to create an App at [developer.db.com](https://developer.db.com) to get the DB client ID and secret. `DB_ACCOUNT` is the IBAN of a checking account, or the last 4 digits of a credit card number. 
 
 [Create a YNAB personal access token](https://api.youneedabudget.com/#personal-access-tokens) to use as your YNAB secret. The budget and account IDs are UUIDs you can get from the URL of the target account. For example, when viewing your account the URL may be `https://app.youneedabudget.com/ba1f67f1-5fba-4314-b4a3-94256409ff57/accounts/822de6c0-6967-4ad3-d4cf-f227dd58a7f9`. In that case the Budget ID is `ba1f67f1-5fba-4314-b4a3-94256409ff57`, and the account ID is `822de6c0-6967-4ad3-d4cf-f227dd58a7f9`.
 
