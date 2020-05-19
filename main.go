@@ -31,6 +31,14 @@ type dbTransaction struct {
 	Amount           float32
 }
 
+type dbCreditTransaction struct {
+	BookingDate             string
+	ReasonForPayment        string
+	AmountInAccountCurrency struct {
+		Amount float32
+	}
+}
+
 type dbTransactionsList struct {
 	Transactions []dbTransaction
 }
@@ -80,12 +88,30 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, url, http.StatusFound)
 		return
 	}
-	account := os.Getenv("DB_ACCOUNT")
-	dbTransactions := getTransactions(account)
+	accountID := os.Getenv("DB_ACCOUNT")
+	var dbTransactions string
+	var convertedTransactions []ynabTransaction
+	accountType, err := GetAccountType(accountID)
+	if err != nil {
+		log.Fatal(err)
+	}
+	switch accountType {
+	case Cash:
+		accountID = strings.ReplaceAll(accountID, " ", "")
+		dbTransactions := GetCashTransactions(accountID)
+		convertedTransactions = ConvertCashTransactionsToYNAB(dbTransactions)
+	case Credit:
+		dbTransactions, err := GetCreditTransactions(accountID)
+		convertedTransactions = ConvertCreditTransactionsToYNAB(dbTransactions)
+		if err != nil {
+			log.Fatal(err)
+		}
+	default:
+		fmt.Printf("Account number not recognized")
+	}
 	if dbTransactions == "" {
 		return
 	}
-	convertedTransactions := ConvertTransactionsToYNAB(dbTransactions)
 	PostTransactionsToYNAB(os.Getenv("YNAB_SECRET"), os.Getenv("YNAB_BUDGET_ID"), convertedTransactions)
 }
 
@@ -116,23 +142,6 @@ func AuthorizedHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	currentToken = tok
 	http.Redirect(w, r, "/", http.StatusFound)
-}
-
-func getTransactions(accountID string) string {
-	var dbTransactions string
-	isCorrectIban, _, _ := iban.IsCorrectIban(accountID, false)
-	if isCorrectIban {
-		accountID = strings.ReplaceAll(accountID, " ", "")
-		return GetCashTransactions(accountID)
-	}
-	if IsCredit(accountID) {
-		transactions, err := GetCreditTransactions(accountID)
-		if err != nil {
-			log.Fatal(err)
-		}
-		return transactions
-	}
-	return dbTransactions
 }
 
 // IsCredit tests if this looks like the last 4 digits of a CC number.
@@ -192,8 +201,8 @@ func GetCashTransactions(iban string) string {
 	return string(body)
 }
 
-// ConvertTransactionsToYNAB converts a JSON string of transaction to YNAB format.
-func ConvertTransactionsToYNAB(incomingTransactions string) []ynabTransaction {
+// ConvertCreditTransactionsToYNAB converts a JSON string of transactions to YNAB format.
+func ConvertCreditTransactionsToYNAB(incomingTransactions string) []ynabTransaction {
 	var marshalledTransactions dbTransactionsList
 	err := json.Unmarshal([]byte(incomingTransactions), &marshalledTransactions)
 	if err != nil {
@@ -214,6 +223,30 @@ func ConvertTransactionsToYNAB(incomingTransactions string) []ynabTransaction {
 		}
 	}
 	<-resultChannel
+	return convertedTransactions
+}
+
+// ConvertCashTransactionsToYNAB converts a JSON string of transactions to YNAB format.
+func ConvertCashTransactionsToYNAB(incomingTransactions string) []ynabTransaction {
+	var marshalledTransactions dbTransactionsList
+	err := json.Unmarshal([]byte(incomingTransactions), &marshalledTransactions)
+	if err != nil {
+		log.Fatal(err)
+	}
+	transactions := marshalledTransactions.Transactions
+	var convertedTransactions []ynabTransaction
+	resultChannel := make(chan ynabTransaction)
+	defer close(resultChannel)
+	accountID := os.Getenv("YNAB_ACCOUNT_ID")
+	for _, transaction := range transactions {
+		go func(t dbTransaction) {
+			resultChannel <- convertTransactionToYNAB(accountID, transaction)
+		}(transaction)
+		for i := 0; i < len(transactions); i++ {
+			convertedTransaction := <-resultChannel
+			convertedTransactions = append(convertedTransactions, convertedTransaction)
+		}
+	}
 	return convertedTransactions
 }
 
