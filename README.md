@@ -50,7 +50,7 @@ Issues and PRs are welcome!
 ### TODO
 
 * refactor a bit for clarity.
-* improve test coverage.
+* refactor tests for clarity
 * include dockerfile in the repo
 * build/publish on Docker hub as a GH action
 * sync upcoming transactions which haven't posted yet.
