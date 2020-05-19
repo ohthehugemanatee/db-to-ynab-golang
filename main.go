@@ -43,6 +43,10 @@ type dbTransactionsList struct {
 	Transactions []dbTransaction
 }
 
+type dbCreditTransactionsList struct {
+	Transactions []dbCreditTransaction
+}
+
 type dbCreditCard struct {
 	TechnicalID string
 	SecurePAN   string
@@ -203,7 +207,7 @@ func GetCashTransactions(iban string) string {
 
 // ConvertCreditTransactionsToYNAB converts a JSON string of transactions to YNAB format.
 func ConvertCreditTransactionsToYNAB(incomingTransactions string) []ynabTransaction {
-	var marshalledTransactions dbTransactionsList
+	var marshalledTransactions dbCreditTransactionsList
 	err := json.Unmarshal([]byte(incomingTransactions), &marshalledTransactions)
 	if err != nil {
 		log.Fatal(err)
@@ -214,15 +218,14 @@ func ConvertCreditTransactionsToYNAB(incomingTransactions string) []ynabTransact
 	defer close(resultChannel)
 	accountID := os.Getenv("YNAB_ACCOUNT_ID")
 	for _, transaction := range transactions {
-		go func(t dbTransaction) {
-			resultChannel <- convertTransactionToYNAB(accountID, transaction)
+		go func(t dbCreditTransaction) {
+			resultChannel <- convertCreditTransactionToYNAB(accountID, transaction)
 		}(transaction)
 		for i := 0; i < len(transactions); i++ {
 			convertedTransaction := <-resultChannel
 			convertedTransactions = append(convertedTransactions, convertedTransaction)
 		}
 	}
-	<-resultChannel
 	return convertedTransactions
 }
 
@@ -262,6 +265,25 @@ func convertTransactionToYNAB(accountID string, incomingTransaction dbTransactio
 		Amount:    convertToMilliunits(incomingTransaction.Amount),
 		PayeeName: &incomingTransaction.CounterPartyName,
 		Memo:      &incomingTransaction.PaymentReference,
+		Cleared:   transaction.ClearingStatusCleared,
+		Approved:  false,
+		ImportID:  &importID,
+	}
+	return transaction
+}
+
+func convertCreditTransactionToYNAB(accountID string, incomingTransaction dbCreditTransaction) ynabTransaction {
+	date, err := api.DateFromString(incomingTransaction.BookingDate)
+	if err != nil {
+		log.Fatal(err)
+	}
+	importIDSource := incomingTransaction.BookingDate + fmt.Sprintf("%f", incomingTransaction.AmountInAccountCurrency.Amount)
+	importID := createImportID(importIDSource)
+	transaction := ynabTransaction{
+		AccountID: accountID,
+		Date:      date,
+		Amount:    convertToMilliunits(incomingTransaction.AmountInAccountCurrency.Amount),
+		PayeeName: &incomingTransaction.ReasonForPayment,
 		Cleared:   transaction.ClearingStatusCleared,
 		Approved:  false,
 		ImportID:  &importID,
