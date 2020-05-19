@@ -22,6 +22,7 @@ import (
 
 type ynabTransaction = transaction.PayloadTransaction
 
+// DbCashTransaction represents a transaction from a cash account.
 type DbCashTransaction struct {
 	BookingDate      string
 	CounterPartyName string
@@ -30,6 +31,7 @@ type DbCashTransaction struct {
 	Amount           float32
 }
 
+// DbCreditTransaction represents a transaction from a credit card account.
 type DbCreditTransaction struct {
 	BookingDate             string
 	ReasonForPayment        string
@@ -38,19 +40,23 @@ type DbCreditTransaction struct {
 	}
 }
 
+// DbCashTransactionsList is a list of cash transactions as returned by the DB API.
 type DbCashTransactionsList struct {
 	Transactions []DbCashTransaction
 }
 
+// DbCreditTransactionsList is a list of cash transactions as returned by the DB API.
 type DbCreditTransactionsList struct {
 	Items []DbCreditTransaction
 }
 
+// DbCreditCard is a credit card.
 type DbCreditCard struct {
 	TechnicalID string
 	SecurePAN   string
 }
 
+// DbCreditCardsList is a list of credit cards as returned by the DB API.
 type DbCreditCardsList struct {
 	Items []DbCreditCard
 }
@@ -63,7 +69,7 @@ const (
 	Cash AccountType = "cash"
 	// Credit is for credit card accounts, eg visa or mastercard.
 	Credit AccountType = "credit"
-	// DBAPIBaseURL is the base url of the DB API.
+	// DbAPIBaseURL is the base url of the DB API.
 	DbAPIBaseURL string = "https://simulator-api.Db.com/"
 )
 
