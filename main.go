@@ -190,6 +190,7 @@ func ConvertTransactionsToYNAB(incomingTransactions string) []ynabTransaction {
 			convertedTransactions = append(convertedTransactions, convertedTransaction)
 		}
 	}
+	<-resultChannel
 	return convertedTransactions
 }
 
