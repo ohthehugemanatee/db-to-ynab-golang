@@ -23,7 +23,7 @@ import (
 
 type ynabTransaction = transaction.PayloadTransaction
 
-type dbTransaction struct {
+type dbCashTransaction struct {
 	BookingDate      string
 	CounterPartyName string
 	PaymentReference string
@@ -39,8 +39,8 @@ type dbCreditTransaction struct {
 	}
 }
 
-type dbTransactionsList struct {
-	Transactions []dbTransaction
+type dbCashTransactionsList struct {
+	Transactions []dbCashTransaction
 }
 
 type dbCreditTransactionsList struct {
@@ -93,7 +93,7 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	accountID := os.Getenv("DB_ACCOUNT")
-	var dbTransactions string
+	var dbCashTransactions string
 	var convertedTransactions []ynabTransaction
 	accountType, err := GetAccountType(accountID)
 	if err != nil {
@@ -102,18 +102,18 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	switch accountType {
 	case Cash:
 		accountID = strings.ReplaceAll(accountID, " ", "")
-		dbTransactions := GetCashTransactions(accountID)
-		convertedTransactions = ConvertCashTransactionsToYNAB(dbTransactions)
+		dbCashTransactions := GetCashTransactions(accountID)
+		convertedTransactions = ConvertCashTransactionsToYNAB(dbCashTransactions)
 	case Credit:
-		dbTransactions, err := GetCreditTransactions(accountID)
-		convertedTransactions = ConvertCreditTransactionsToYNAB(dbTransactions)
+		dbCashTransactions, err := GetCreditTransactions(accountID)
+		convertedTransactions = ConvertCreditTransactionsToYNAB(dbCashTransactions)
 		if err != nil {
 			log.Fatal(err)
 		}
 	default:
 		fmt.Printf("Account number not recognized")
 	}
-	if dbTransactions == "" {
+	if dbCashTransactions == "" {
 		return
 	}
 	PostTransactionsToYNAB(os.Getenv("YNAB_SECRET"), os.Getenv("YNAB_BUDGET_ID"), convertedTransactions)
@@ -231,7 +231,7 @@ func ConvertCreditTransactionsToYNAB(incomingTransactions string) []ynabTransact
 
 // ConvertCashTransactionsToYNAB converts a JSON string of transactions to YNAB format.
 func ConvertCashTransactionsToYNAB(incomingTransactions string) []ynabTransaction {
-	var marshalledTransactions dbTransactionsList
+	var marshalledTransactions dbCashTransactionsList
 	err := json.Unmarshal([]byte(incomingTransactions), &marshalledTransactions)
 	if err != nil {
 		log.Fatal(err)
@@ -242,7 +242,7 @@ func ConvertCashTransactionsToYNAB(incomingTransactions string) []ynabTransactio
 	defer close(resultChannel)
 	accountID := os.Getenv("YNAB_ACCOUNT_ID")
 	for _, transaction := range transactions {
-		go func(t dbTransaction) {
+		go func(t dbCashTransaction) {
 			resultChannel <- convertTransactionToYNAB(accountID, transaction)
 		}(transaction)
 		for i := 0; i < len(transactions); i++ {
@@ -253,7 +253,7 @@ func ConvertCashTransactionsToYNAB(incomingTransactions string) []ynabTransactio
 	return convertedTransactions
 }
 
-func convertTransactionToYNAB(accountID string, incomingTransaction dbTransaction) ynabTransaction {
+func convertTransactionToYNAB(accountID string, incomingTransaction dbCashTransaction) ynabTransaction {
 	date, err := api.DateFromString(incomingTransaction.BookingDate)
 	if err != nil {
 		log.Fatal(err)
