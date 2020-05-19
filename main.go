@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -73,18 +74,27 @@ const (
 	DbAPIBaseURL string = "https://simulator-api.Db.com/"
 )
 
+var (
+	accountNumber  string = os.Getenv("DB_ACCOUNT")
+	ynabSecret     string = os.Getenv("YNAB_SECRET")
+	dbClientID     string = os.Getenv("DB_CLIENT_ID")
+	dbClientSecret string = os.Getenv("DB_CLIENT_SECRET")
+	ynabBudgetID   string = os.Getenv("YNAB_BUDGET_ID")
+	ynabAccountID  string = os.Getenv("YNAB_ACCOUNT_ID")
+
+	oauth2HttpContext context.Context = context.Background()
+	currentToken                      = &oauth2.Token{}
+)
+
 var oauth2Conf = &oauth2.Config{
-	ClientID:     os.Getenv("DB_CLIENT_ID"),
-	ClientSecret: os.Getenv("DB_CLIENT_SECRET"),
+	ClientID:     dbClientID,
+	ClientSecret: dbClientSecret,
 	Scopes:       []string{"read_transactions", "read_accounts", "read_credit_cards_list_with_details", "read_credit_card_transactions", "offline_access"},
 	Endpoint: oauth2.Endpoint{
 		AuthURL:  DbAPIBaseURL + "gw/oidc/authorize",
 		TokenURL: DbAPIBaseURL + "gw/oidc/token",
 	},
 }
-var oauth2HttpContext context.Context = context.Background()
-
-var currentToken = &oauth2.Token{}
 
 func main() {
 	http.HandleFunc("/", RootHandler)
@@ -99,40 +109,37 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, url, http.StatusFound)
 		return
 	}
-	accountID := os.Getenv("DB_ACCOUNT")
 	var DbCashTransactions string
 	var convertedTransactions []ynabTransaction
-	accountType, err := GetAccountType(accountID)
+	accountType, err := GetAccountType(accountNumber)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintf(w, "%s", err.Error())
 	}
 	switch accountType {
 	case Cash:
-		accountID = strings.ReplaceAll(accountID, " ", "")
-		DbCashTransactions := GetCashTransactions(accountID)
+		accountNumber = strings.ReplaceAll(accountNumber, " ", "")
+		DbCashTransactions := GetCashTransactions(accountNumber)
 		convertedTransactions = ConvertCashTransactionsToYNAB(DbCashTransactions)
 	case Credit:
-		DbCashTransactions, err := GetCreditTransactions(accountID)
+		DbCashTransactions, err := GetCreditTransactions(accountNumber)
 		convertedTransactions = ConvertCreditTransactionsToYNAB(DbCashTransactions)
 		if err != nil {
 			log.Fatal(err)
 		}
-	default:
-		fmt.Printf("Account number not recognized")
 	}
 	if DbCashTransactions == "" {
 		return
 	}
-	PostTransactionsToYNAB(os.Getenv("YNAB_SECRET"), os.Getenv("YNAB_BUDGET_ID"), convertedTransactions)
+	PostTransactionsToYNAB(ynabSecret, ynabBudgetID, convertedTransactions)
 }
 
 // GetAccountType returns "cash" or "credit" based on the kind of account ID.
-func GetAccountType(accountID string) (AccountType, error) {
-	isCorrectIban, _, _ := iban.IsCorrectIban(accountID, false)
+func GetAccountType(accountNumber string) (AccountType, error) {
+	isCorrectIban, _, _ := iban.IsCorrectIban(accountNumber, false)
 	if isCorrectIban {
 		return Cash, nil
 	}
-	if IsCredit(accountID) {
+	if IsCredit(accountNumber) {
 		return Credit, nil
 	}
 	return "", errors.New("Account ID is not recognized as a valid IBAN or the last 4 digits of a credit card")
@@ -156,9 +163,9 @@ func AuthorizedHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // IsCredit tests if this looks like the last 4 digits of a CC number.
-func IsCredit(accountID string) bool {
+func IsCredit(accountNumber string) bool {
 	re := regexp.MustCompile(`^[0-9]{4}$`)
-	return re.MatchString(accountID)
+	return re.MatchString(accountNumber)
 }
 
 // GetCreditTransactions gets transactions from a credit card.
@@ -200,6 +207,9 @@ func DbAPIRequest(path string, recipient interface{}) error {
 	}
 	defer request.Body.Close()
 	json.NewDecoder(request.Body).Decode(&recipient)
+	bodyBytes, _ := ioutil.ReadAll(request.Body)
+	bodyString := string(bodyBytes)
+	fmt.Print(bodyString)
 	return nil
 }
 
@@ -216,10 +226,10 @@ func ConvertCreditTransactionsToYNAB(incomingTransactions DbCreditTransactionsLi
 	var convertedTransactions []ynabTransaction
 	resultChannel := make(chan ynabTransaction)
 	defer close(resultChannel)
-	accountID := os.Getenv("YNAB_ACCOUNT_ID")
+	accountNumber := ynabAccountID
 	for _, transaction := range transactions {
 		go func(t DbCreditTransaction) {
-			resultChannel <- convertCreditTransactionToYNAB(accountID, transaction)
+			resultChannel <- convertCreditTransactionToYNAB(accountNumber, transaction)
 		}(transaction)
 		for i := 0; i < len(transactions); i++ {
 			convertedTransaction := <-resultChannel
@@ -235,10 +245,10 @@ func ConvertCashTransactionsToYNAB(incomingTransactions DbCashTransactionsList) 
 	var convertedTransactions []ynabTransaction
 	resultChannel := make(chan ynabTransaction)
 	defer close(resultChannel)
-	accountID := os.Getenv("YNAB_ACCOUNT_ID")
+	accountNumber := ynabAccountID
 	for _, transaction := range transactions {
 		go func(t DbCashTransaction) {
-			resultChannel <- convertTransactionToYNAB(accountID, transaction)
+			resultChannel <- convertTransactionToYNAB(accountNumber, transaction)
 		}(transaction)
 		for i := 0; i < len(transactions); i++ {
 			convertedTransaction := <-resultChannel
@@ -248,14 +258,14 @@ func ConvertCashTransactionsToYNAB(incomingTransactions DbCashTransactionsList) 
 	return convertedTransactions
 }
 
-func convertTransactionToYNAB(accountID string, incomingTransaction DbCashTransaction) ynabTransaction {
+func convertTransactionToYNAB(accountNumber string, incomingTransaction DbCashTransaction) ynabTransaction {
 	date, err := api.DateFromString(incomingTransaction.BookingDate)
 	if err != nil {
 		log.Fatal(err)
 	}
 	importID := createImportID(incomingTransaction.ID)
 	transaction := ynabTransaction{
-		AccountID: accountID,
+		AccountID: accountNumber,
 		Date:      date,
 		Amount:    convertToMilliunits(incomingTransaction.Amount),
 		PayeeName: &incomingTransaction.CounterPartyName,
@@ -267,7 +277,7 @@ func convertTransactionToYNAB(accountID string, incomingTransaction DbCashTransa
 	return transaction
 }
 
-func convertCreditTransactionToYNAB(accountID string, incomingTransaction DbCreditTransaction) ynabTransaction {
+func convertCreditTransactionToYNAB(accountNumber string, incomingTransaction DbCreditTransaction) ynabTransaction {
 	date, err := api.DateFromString(incomingTransaction.BookingDate)
 	if err != nil {
 		log.Fatal(err)
@@ -275,7 +285,7 @@ func convertCreditTransactionToYNAB(accountID string, incomingTransaction DbCred
 	importIDSource := incomingTransaction.BookingDate + fmt.Sprintf("%f", incomingTransaction.AmountInAccountCurrency.Amount)
 	importID := createImportID(importIDSource)
 	transaction := ynabTransaction{
-		AccountID: accountID,
+		AccountID: accountNumber,
 		Date:      date,
 		Amount:    convertToMilliunits(incomingTransaction.AmountInAccountCurrency.Amount),
 		PayeeName: &incomingTransaction.ReasonForPayment,
