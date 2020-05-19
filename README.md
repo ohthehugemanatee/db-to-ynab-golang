@@ -1,8 +1,14 @@
 # db-to-ynab-golang
 
-Work in progress: an API based sync from Deutsche Bank accounts to You Need a Budget.
+An API based sync from Deutsche Bank accounts to You Need a Budget.
+
+![Go](https://github.com/ohthehugemanatee/db-to-ynab-golang/workflows/Go/badge.svg?branch=master)
+
+This application is still in development (see #todo, below), but already works perfectly well for home use. Please submit issues as you find them!
 
 ## To run
+
+It is intended to run a separate instance for each account you want to sync. You can (and should!) re-use the same `DB_CLIENT_ID` and `DB_CLIENT_SECRET` for all of your own instances. I do not recommend using this to sync anyone else's accounts.
 
 Set environment variables:
 
@@ -27,16 +33,18 @@ NB:
 * The token received from DB is good for a month, updated each time you run the sync. So as long as you're sync'ing more than once a month, you should only have to manually enter credentials once. 
 * The token is kept in memory only; when you restart the application you will need to authenticate again.
 * The transactions created by this sync engine will be duplicated if you run manual CSV imports using the interface.
+* This application will duplicate transactions imported through other methods, eg CSV import or other tools.
 
 ## Current status
 
-It syncs the most recent 10 transactions since a fixed date, based on the transactions in the test account I got from DB.
+### Working
+
+* Sync cash accounts (checking, savings). It syncs the last 100 transactions every time you run it. No, you will not get duplicate transactions from these repeats. 
+* Sync credit cards. It syncs the last 30 days of transactions every time you run it.
 
 ### TODO
 
-* update tests for full set of `/` behaviors.
 * refactor a bit for clarity.
-* include dockerfile in the repo
-* sync credit card accounts, too.
+* improve test coverage.
+* include dockerfile in the repo, publish on Docker hub
 * sync upcoming transactions which haven't posted yet.
-* publish on docker hub
