@@ -26,12 +26,12 @@ func TestAuthorizedHandler(t *testing.T) {
 	})
 	t.Run("Pass with a valid code parameter", func(t *testing.T) {
 		defer gock.Off()
-		gock.New("https://simulator-api.db.com").
+		gock.New("https://simulator-api.Db.com").
 			Post("/gw/oidc/token").
 			Reply(200).
 			JSON(map[string]string{"access_token": "ACCESS_TOKEN", "token_type": "bearer"})
 
-		gock.New("https://simulator-api.db.com").
+		gock.New("https://simulator-api.Db.com").
 			Post("/gw/oidc/token").
 			Reply(200).
 			JSON(map[string]string{"access_token": "ACCESS_TOKEN", "token_type": "bearer"})
@@ -44,28 +44,33 @@ func TestAuthorizedHandler(t *testing.T) {
 func TestGetCashTransactions(t *testing.T) {
 	defer gock.Off()
 	iban := "test-iban"
-	expected := "test-iban"
+	responseBody := `{"totalItems":0,"limit":0,"offset":0,"transactions":[{"id":"string","originIban":"string","amount":0,"counterPartyName":"string","counterPartyIban":"string","paymentReference":"string","bookingDate":"string","currencyCode":"string","transactionCode":"string","externalBankTransactionDomainCode":"string","externalBankTransactionFamilyCode":"string","externalBankTransactionSubFamilyCode":"string","mandateReference":"string","creditorId":"string","e2eReference":"string","paymentIdentification":"string","valueDate":"string"}]}`
 	currentToken = &oauth2.Token{
 		AccessToken: "ACCESS_TOKEN",
 		Expiry:      time.Now().AddDate(1, 0, 0)}
-	gock.New("https://simulator-api.db.com").
-		Get("/gw/dbapi/banking/transactions/v2/").
+	gock.New("https://simulator-api.Db.com").
+		Get("/gw/Dbapi/banking/transactions/v2/").
 		MatchParam("iban", iban).
 		MatchParam("limit", "100").
 		MatchHeader("Authorization", "^Bearer (.*)$").
 		Reply(200).
-		BodyString(expected)
+		BodyString(responseBody)
 	result := GetCashTransactions(iban)
-	if result != expected {
-		t.Errorf("Got wrong value: got %v want %v",
-			result, expected)
+	marshalledResult, _ := json.Marshal(result)
+	stringResult := string(marshalledResult[:])
+	expected := `{"Transactions":[{"BookingDate":"string","CounterPartyName":"string","PaymentReference":"string","ID":"string","Amount":0}]}`
+	if stringResult != expected {
+		t.Errorf("Got wrong value: got %s want %s",
+			stringResult, expected)
 	}
 }
 
-func TestConvertTransactionsToYNAB(t *testing.T) {
+func TestConvertCashTransactionsToYNAB(t *testing.T) {
 	os.Setenv("YNAB_ACCOUNT_ID", "account-id")
-	inputString := string(`{"transactions":[{"originIban":"DE10010000000000006136","amount":-19.05,"paymentReference":"POS MIT PIN. Mein Drogeriemarkt, Leipziger Str.","counterPartyName":"Rossmann","transactionCode":"123","valueDate":"2018-04-23","counterPartyIban":"","paymentIdentification":"212+ZKLE 911/696682-X-ABC","mandateReference":"MX0355443","externalBankTransactionDomainCode":"D001","externalBankTransactionFamilyCode":"CCRD","externalBankTransactionSubFamilyCode":"CWDL","bookingDate":"2019-11-04","id":"_2FMRe0AhzLaZu14Cz-lol2H_DDY4z9yIOJKrDlDjHCSCjlJk4dfM_2MOWo6JSezeNJJz5Fm23hOEFccXR0AXmZFmyFv_dI6xHu-DADUYh-_ue-2e1let853sS4-glBM","e2eReference":"E2E - Reference","currencyCode":"EUR","creditorId":"DE0222200004544221"}]}`)
-	converted := ConvertCashTransactionsToYNAB(inputString)
+	input := []byte(`{"transactions":[{"originIban":"DE10010000000000006136","amount":-19.05,"paymentReference":"POS MIT PIN. Mein Drogeriemarkt, Leipziger Str.","counterPartyName":"Rossmann","transactionCode":"123","valueDate":"2018-04-23","counterPartyIban":"","paymentIdentification":"212+ZKLE 911/696682-X-ABC","mandateReference":"MX0355443","externalBankTransactionDomainCode":"D001","externalBankTransactionFamilyCode":"CCRD","externalBankTransactionSubFamilyCode":"CWDL","bookingDate":"2019-11-04","id":"_2FMRe0AhzLaZu14Cz-lol2H_DDY4z9yIOJKrDlDjHCSCjlJk4dfM_2MOWo6JSezeNJJz5Fm23hOEFccXR0AXmZFmyFv_dI6xHu-DADUYh-_ue-2e1let853sS4-glBM","e2eReference":"E2E - Reference","currencyCode":"EUR","creditorId":"DE0222200004544221"}]}`)
+	var DbTransactionsList DbCashTransactionsList
+	json.Unmarshal(input, &DbTransactionsList)
+	converted := ConvertCashTransactionsToYNAB(DbTransactionsList)
 	marshalledOutput, err := json.Marshal((converted))
 	output := string(marshalledOutput)
 	if err != nil {
@@ -73,7 +78,7 @@ func TestConvertTransactionsToYNAB(t *testing.T) {
 	}
 	expected := string(`[{"account_id":"account-id","date":"2019-11-04","amount":-19050,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Rossmann","category_id":null,"memo":"POS MIT PIN. Mein Drogeriemarkt, Leipziger Str.","flag_color":null,"import_id":"4b57e244083bddaef7036b3f7d55c7cb"}]`)
 	if output != expected {
-		t.Errorf("Got wrong value: got %v wanted %v", output, expected)
+		t.Errorf("Got wrong value: got %s wanted %s", output, expected)
 	}
 }
 
@@ -131,30 +136,33 @@ func testSuccessfulGetCreditTransactions(t *testing.T) {
 	defer gock.Off()
 	last4 := "1599"
 	technicalID := "24842"
-	expected := "test-result"
+	cardTransactionResponse := `{"totalItems":1,"items":[{"bookingDate":"2017-09-02","valueDate":"2017-09-02","billingDate":"2017-09-28","reasonForPayment":"Marvel Comics Inc.","amountInForeignCurrency":{"amount":42.21,"currency":"EUR"},"amountInAccountCurrency":{"amount":42.21,"currency":"EUR"},"foreignFxRate":{"sourceCurrency":"EUR","targetCurrency":"EUR","rate":1}}]}`
 	cardListResponse := `{  "totalItems": 1,  "items": [    {      "technicalId": "24842",      "embossedLine1": "DR HANS LUEDENSCHE",      "hasDebitFeatures": false,      "expiryDate": "10.2018",      "productName": "Deutsche Bank BusinessCard",      "securePAN": "************1599"    }  ]}`
 	currentToken = &oauth2.Token{
 		AccessToken: "ACCESS_TOKEN",
 		Expiry:      time.Now().AddDate(1, 0, 0),
 	}
-	gock.New("https://simulator-api.db.com").
-		Get("gw/dbapi/banking/creditCards/v1/").
+	gock.New("https://simulator-api.Db.com").
+		Get("gw/Dbapi/banking/creditCards/v1/").
 		MatchHeader("Authorization", "^Bearer (.*)$").
 		Reply(200).
 		BodyString(cardListResponse)
 
-	gock.New("https://simulator-api.db.com").
-		Get("gw/dbapi/banking/creditCardTransactions/v1").
+	gock.New("https://simulator-api.Db.com").
+		Get("gw/Dbapi/banking/creditCardTransactions/v1").
 		MatchParam("technicalId", technicalID).
 		MatchParam("bookingDateTo", time.Now().Format("2006-01-02")).
 		MatchParam("bookingDateFrom", time.Now().AddDate(0, 0, -10).Format("2006-01-02")).
 		MatchHeader("Authorization", "^Bearer (.*)$").
 		Reply(200).
-		BodyString(expected)
+		BodyString(cardTransactionResponse)
 	result, _ := GetCreditTransactions(last4)
-	if result != expected {
-		t.Errorf("Got wrong value: got %v want %v",
-			result, expected)
+	marshalledResult, _ := json.Marshal(result)
+	stringResult := string(marshalledResult[:])
+	expected := `{"Items":[{"BookingDate":"2017-09-02","ReasonForPayment":"Marvel Comics Inc.","AmountInAccountCurrency":{"Amount":42.21}}]}`
+	if stringResult != expected {
+		t.Errorf("Got wrong value: got %s want %s",
+			stringResult, expected)
 	}
 }
 
@@ -166,8 +174,8 @@ func testFailingGetCreditTransactions(t *testing.T) {
 		AccessToken: "ACCESS_TOKEN",
 		Expiry:      time.Now().AddDate(1, 0, 0),
 	}
-	gock.New("https://simulator-api.db.com").
-		Get("gw/dbapi/banking/creditCards/v1/").
+	gock.New("https://simulator-api.Db.com").
+		Get("gw/Dbapi/banking/creditCards/v1/").
 		MatchHeader("Authorization", "^Bearer (.*)$").
 		Reply(200).
 		BodyString(cardListResponse)

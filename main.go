@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -23,7 +22,7 @@ import (
 
 type ynabTransaction = transaction.PayloadTransaction
 
-type dbCashTransaction struct {
+type DbCashTransaction struct {
 	BookingDate      string
 	CounterPartyName string
 	PaymentReference string
@@ -31,7 +30,7 @@ type dbCashTransaction struct {
 	Amount           float32
 }
 
-type dbCreditTransaction struct {
+type DbCreditTransaction struct {
 	BookingDate             string
 	ReasonForPayment        string
 	AmountInAccountCurrency struct {
@@ -39,21 +38,21 @@ type dbCreditTransaction struct {
 	}
 }
 
-type dbCashTransactionsList struct {
-	Transactions []dbCashTransaction
+type DbCashTransactionsList struct {
+	Transactions []DbCashTransaction
 }
 
-type dbCreditTransactionsList struct {
-	Transactions []dbCreditTransaction
+type DbCreditTransactionsList struct {
+	Items []DbCreditTransaction
 }
 
-type dbCreditCard struct {
+type DbCreditCard struct {
 	TechnicalID string
 	SecurePAN   string
 }
 
-type dbCreditCardsList struct {
-	Items []dbCreditCard
+type DbCreditCardsList struct {
+	Items []DbCreditCard
 }
 
 // AccountType denotes a type of bank account, eg cash vs credit.
@@ -64,6 +63,8 @@ const (
 	Cash AccountType = "cash"
 	// Credit is for credit card accounts, eg visa or mastercard.
 	Credit AccountType = "credit"
+	// DBAPIBaseURL is the base url of the DB API.
+	DbAPIBaseURL string = "https://simulator-api.Db.com/"
 )
 
 var oauth2Conf = &oauth2.Config{
@@ -71,8 +72,8 @@ var oauth2Conf = &oauth2.Config{
 	ClientSecret: os.Getenv("DB_CLIENT_SECRET"),
 	Scopes:       []string{"read_transactions", "read_accounts", "read_credit_cards_list_with_details", "read_credit_card_transactions", "offline_access"},
 	Endpoint: oauth2.Endpoint{
-		AuthURL:  "https://simulator-api.db.com/gw/oidc/authorize",
-		TokenURL: "https://simulator-api.db.com/gw/oidc/token",
+		AuthURL:  DbAPIBaseURL + "gw/oidc/authorize",
+		TokenURL: DbAPIBaseURL + "gw/oidc/token",
 	},
 }
 var oauth2HttpContext context.Context = context.Background()
@@ -93,7 +94,7 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	accountID := os.Getenv("DB_ACCOUNT")
-	var dbCashTransactions string
+	var DbCashTransactions string
 	var convertedTransactions []ynabTransaction
 	accountType, err := GetAccountType(accountID)
 	if err != nil {
@@ -102,18 +103,18 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	switch accountType {
 	case Cash:
 		accountID = strings.ReplaceAll(accountID, " ", "")
-		dbCashTransactions := GetCashTransactions(accountID)
-		convertedTransactions = ConvertCashTransactionsToYNAB(dbCashTransactions)
+		DbCashTransactions := GetCashTransactions(accountID)
+		convertedTransactions = ConvertCashTransactionsToYNAB(DbCashTransactions)
 	case Credit:
-		dbCashTransactions, err := GetCreditTransactions(accountID)
-		convertedTransactions = ConvertCreditTransactionsToYNAB(dbCashTransactions)
+		DbCashTransactions, err := GetCreditTransactions(accountID)
+		convertedTransactions = ConvertCreditTransactionsToYNAB(DbCashTransactions)
 		if err != nil {
 			log.Fatal(err)
 		}
 	default:
 		fmt.Printf("Account number not recognized")
 	}
-	if dbCashTransactions == "" {
+	if DbCashTransactions == "" {
 		return
 	}
 	PostTransactionsToYNAB(os.Getenv("YNAB_SECRET"), os.Getenv("YNAB_BUDGET_ID"), convertedTransactions)
@@ -155,70 +156,63 @@ func IsCredit(accountID string) bool {
 }
 
 // GetCreditTransactions gets transactions from a credit card.
-func GetCreditTransactions(last4 string) (string, error) {
-	technicalID := getTechnicalID(last4)
-	if technicalID == "" {
-		return "", fmt.Errorf("No credit card found on account with last digits %v", last4)
+func GetCreditTransactions(last4 string) (DbCreditTransactionsList, error) {
+	var transactions DbCreditTransactionsList
+	technicalID, err := getTechnicalID(last4)
+	if err != nil {
+		return transactions, err
 	}
 	urlParams := "?technicalId=" + technicalID
 	urlParams = urlParams + "&bookingDateTo=" + time.Now().Format("2006-01-02")
 	urlParams = urlParams + "&bookingDateFrom=" + time.Now().AddDate(0, 0, -10).Format("2006-01-02")
-	transactions, err := oauth2Conf.Client(oauth2HttpContext, currentToken).Get("https://simulator-api.db.com/gw/dbapi/banking/creditCardTransactions/v1" + urlParams)
+	err = DbAPIRequest("gw/Dbapi/banking/creditCardTransactions/v1"+urlParams, &transactions)
 	if err != nil {
-		log.Fatal(err)
+		return transactions, err
 	}
-	defer transactions.Body.Close()
-	body, err := ioutil.ReadAll(transactions.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return string(body), nil
+	return transactions, nil
 }
 
-func getTechnicalID(last4 string) string {
-	creditCards, err := oauth2Conf.Client(oauth2HttpContext, currentToken).Get("https://simulator-api.db.com/gw/dbapi/banking/creditCards/v1/")
+func getTechnicalID(last4 string) (string, error) {
+	var cardsMap DbCreditCardsList
+	err := DbAPIRequest("gw/Dbapi/banking/creditCards/v1/", &cardsMap)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
-	defer creditCards.Body.Close()
-	var cardsMap dbCreditCardsList
-	json.NewDecoder(creditCards.Body).Decode(&cardsMap)
 	for _, cardDetails := range cardsMap.Items {
 		if cardDetails.SecurePAN == "************"+last4 {
-			return cardDetails.TechnicalID
+			return cardDetails.TechnicalID, nil
 		}
 	}
-	return ""
+	return "", fmt.Errorf("No credit card found on account with last digits %v", last4)
+}
+
+// DbAPIRequest makes a call to the DB API and loads the JSON response into a slice.
+func DbAPIRequest(path string, recipient interface{}) error {
+	request, err := oauth2Conf.Client(oauth2HttpContext, currentToken).Get(DbAPIBaseURL + path)
+	if err != nil {
+		return err
+	}
+	defer request.Body.Close()
+	json.NewDecoder(request.Body).Decode(&recipient)
+	return nil
 }
 
 // GetCashTransactions gets transactions from a cash account.
-func GetCashTransactions(iban string) string {
-	transactions, err := oauth2Conf.Client(oauth2HttpContext, currentToken).Get("https://simulator-api.db.com/gw/dbapi/banking/transactions/v2/?limit=100&iban=" + iban)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer transactions.Body.Close()
-	body, err := ioutil.ReadAll(transactions.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return string(body)
+func GetCashTransactions(iban string) DbCashTransactionsList {
+	var transactionsList DbCashTransactionsList
+	DbAPIRequest("gw/Dbapi/banking/transactions/v2/?limit=100&iban="+iban, &transactionsList)
+	return transactionsList
 }
 
 // ConvertCreditTransactionsToYNAB converts a JSON string of transactions to YNAB format.
-func ConvertCreditTransactionsToYNAB(incomingTransactions string) []ynabTransaction {
-	var marshalledTransactions dbCreditTransactionsList
-	err := json.Unmarshal([]byte(incomingTransactions), &marshalledTransactions)
-	if err != nil {
-		log.Fatal(err)
-	}
-	transactions := marshalledTransactions.Transactions
+func ConvertCreditTransactionsToYNAB(incomingTransactions DbCreditTransactionsList) []ynabTransaction {
+	transactions := incomingTransactions.Items
 	var convertedTransactions []ynabTransaction
 	resultChannel := make(chan ynabTransaction)
 	defer close(resultChannel)
 	accountID := os.Getenv("YNAB_ACCOUNT_ID")
 	for _, transaction := range transactions {
-		go func(t dbCreditTransaction) {
+		go func(t DbCreditTransaction) {
 			resultChannel <- convertCreditTransactionToYNAB(accountID, transaction)
 		}(transaction)
 		for i := 0; i < len(transactions); i++ {
@@ -230,19 +224,14 @@ func ConvertCreditTransactionsToYNAB(incomingTransactions string) []ynabTransact
 }
 
 // ConvertCashTransactionsToYNAB converts a JSON string of transactions to YNAB format.
-func ConvertCashTransactionsToYNAB(incomingTransactions string) []ynabTransaction {
-	var marshalledTransactions dbCashTransactionsList
-	err := json.Unmarshal([]byte(incomingTransactions), &marshalledTransactions)
-	if err != nil {
-		log.Fatal(err)
-	}
-	transactions := marshalledTransactions.Transactions
+func ConvertCashTransactionsToYNAB(incomingTransactions DbCashTransactionsList) []ynabTransaction {
+	transactions := incomingTransactions.Transactions
 	var convertedTransactions []ynabTransaction
 	resultChannel := make(chan ynabTransaction)
 	defer close(resultChannel)
 	accountID := os.Getenv("YNAB_ACCOUNT_ID")
 	for _, transaction := range transactions {
-		go func(t dbCashTransaction) {
+		go func(t DbCashTransaction) {
 			resultChannel <- convertTransactionToYNAB(accountID, transaction)
 		}(transaction)
 		for i := 0; i < len(transactions); i++ {
@@ -253,7 +242,7 @@ func ConvertCashTransactionsToYNAB(incomingTransactions string) []ynabTransactio
 	return convertedTransactions
 }
 
-func convertTransactionToYNAB(accountID string, incomingTransaction dbCashTransaction) ynabTransaction {
+func convertTransactionToYNAB(accountID string, incomingTransaction DbCashTransaction) ynabTransaction {
 	date, err := api.DateFromString(incomingTransaction.BookingDate)
 	if err != nil {
 		log.Fatal(err)
@@ -272,7 +261,7 @@ func convertTransactionToYNAB(accountID string, incomingTransaction dbCashTransa
 	return transaction
 }
 
-func convertCreditTransactionToYNAB(accountID string, incomingTransaction dbCreditTransaction) ynabTransaction {
+func convertCreditTransactionToYNAB(accountID string, incomingTransaction DbCreditTransaction) ynabTransaction {
 	date, err := api.DateFromString(incomingTransaction.BookingDate)
 	if err != nil {
 		log.Fatal(err)
