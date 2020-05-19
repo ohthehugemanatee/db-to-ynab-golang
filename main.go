@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -43,6 +44,16 @@ type dbCreditCardsList struct {
 	Items []dbCreditCard
 }
 
+// AccountType denotes a type of bank account, eg cash vs credit.
+type AccountType string
+
+const (
+	// Cash is for cash accounts, eg checking, savings.
+	Cash AccountType = "cash"
+	// Credit is for credit card accounts, eg visa or mastercard.
+	Credit AccountType = "credit"
+)
+
 var oauth2Conf = &oauth2.Config{
 	ClientID:     os.Getenv("DB_CLIENT_ID"),
 	ClientSecret: os.Getenv("DB_CLIENT_SECRET"),
@@ -76,6 +87,18 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	convertedTransactions := ConvertTransactionsToYNAB(dbTransactions)
 	PostTransactionsToYNAB(os.Getenv("YNAB_SECRET"), os.Getenv("YNAB_BUDGET_ID"), convertedTransactions)
+}
+
+// GetAccountType returns "cash" or "credit" based on the kind of account ID.
+func GetAccountType(accountID string) (AccountType, error) {
+	isCorrectIban, _, _ := iban.IsCorrectIban(accountID, false)
+	if isCorrectIban {
+		return Cash, nil
+	}
+	if IsCredit(accountID) {
+		return Credit, nil
+	}
+	return "", errors.New("Account ID is not recognized as a valid IBAN or the last 4 digits of a credit card")
 }
 
 // AuthorizedHandler handles calls to /authorized

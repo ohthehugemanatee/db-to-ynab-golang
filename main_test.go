@@ -93,6 +93,35 @@ func TestIsCredit(t *testing.T) {
 
 }
 
+func TestGetAccountType(t *testing.T) {
+	t.Run("Detect valid IBAN", func(t *testing.T) {
+		testValidAccount(t, "DE49500105178844289951", Cash)
+	})
+	t.Run("Detect valid last 4 digits from a credit card", func(t *testing.T) {
+		testValidAccount(t, "1234", Credit)
+	})
+	t.Run("Detect invalid IBAN", func(t *testing.T) {
+		iban := "DE10010000000000006136"
+		result, err := GetAccountType(iban)
+		if result != "" {
+			t.Errorf("IBAN %v not detected as invalid", iban)
+		}
+		if err == nil {
+			t.Error("Invalid IBAN did not return an error")
+		}
+	})
+}
+
+func testValidAccount(t *testing.T, account string, expect AccountType) {
+	result, err := GetAccountType(account)
+	if result != expect {
+		t.Errorf("Account type for %v not detected as %v", result, expect)
+	}
+	if err != nil {
+		t.Errorf("Inappropriate error %v returned for valid iban %v", err.Error(), account)
+	}
+}
+
 func TestGetCreditTransactions(t *testing.T) {
 	testSuccessfulGetCreditTransactions(t)
 	testFailingGetCreditTransactions(t)
