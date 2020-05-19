@@ -34,6 +34,12 @@ NB:
 * The token is kept in memory only; when you restart the application you will need to authenticate again.
 * This application will duplicate transactions imported through other methods, eg CSV import or other tools.
 
+## To Develop
+
+This project is configured with [a dev container for VSCode](https://code.visualstudio.com/docs/remote/containers). If you have VSCode with the [Remote - Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers), your IDE will prompt you to open in the container. That should have everything you need to get running. You can set the required environment variables in a local `.devcontainer/.env` file.
+
+Issues and PRs are welcome!
+
 ## Current status
 
 ### Working
