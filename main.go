@@ -69,8 +69,6 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, url, http.StatusFound)
 		return
 	}
-	fmt.Fprintf(w, "<html><body>")
-	fmt.Fprintf(w, "Already authorized")
 	account := os.Getenv("DB_ACCOUNT")
 	dbTransactions := getTransactions(account)
 	if dbTransactions == "" {
@@ -78,7 +76,6 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	convertedTransactions := ConvertTransactionsToYNAB(dbTransactions)
 	PostTransactionsToYNAB(os.Getenv("YNAB_SECRET"), os.Getenv("YNAB_BUDGET_ID"), convertedTransactions)
-	fmt.Fprint(w, "Posted transactions to YNAB")
 }
 
 // AuthorizedHandler handles calls to /authorized
