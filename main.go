@@ -71,7 +71,7 @@ const (
 	// Credit is for credit card accounts, eg visa or mastercard.
 	Credit AccountType = "credit"
 	// DbAPIBaseURL is the base url of the DB API.
-	DbAPIBaseURL string = "https://simulator-api.Db.com/"
+	DbAPIBaseURL string = "https://simulator-api.db.com/"
 )
 
 var (
