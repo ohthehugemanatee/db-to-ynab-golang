@@ -40,6 +40,15 @@ This project is configured with [a dev container for VSCode](https://code.visual
 
 Issues and PRs are welcome!
 
+### Gotchas in DB sandbox
+
+If you start a new API app with DB, you are confined to a sandbox of test accounts/data until your app has been approved. Everything works as expected, except:
+
+* The sandbox test users have invalid IBAN numbers. So you cannot test cash accounts
+* The sandbox test users only have credit card transactions up until 2017. So you cannot test credit card accounts.
+
+I have notified DB about these issues, but if you're helping out you deserve to know, too!
+
 ## Current status
 
 ### Working
