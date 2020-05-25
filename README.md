@@ -27,7 +27,7 @@ You have to create an App at [developer.db.com](https://developer.db.com) to get
 
 With those env vars in `.env`, you're ready to run the application.
 
-*If you have docker*: run the application with `./start.sh`. 
+*If you have docker*: run the application with `./start.sh`, or by hand with `docker run -p 3000:3000 --env-file .env ohthehugemanatee/db-ynab-sync`.
 *If you don't have docker*: install golang, compile with `go build` and run.
 
 With a web browser, visit port `3000` wherever it's running - likely `http://localhost:3000`. On your first visit it will redirect you to the DB authentication page, where you must sign into your account. On all subsequent visits, it will simply sync.
@@ -65,5 +65,4 @@ I have notified DB about these issues, but if you're helping out you deserve to 
 
 * refactor a bit for clarity.
 * refactor tests for clarity
-* build/publish on Docker hub as a GH action
 * sync upcoming transactions which haven't posted yet.
