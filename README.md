@@ -10,7 +10,7 @@ This application is still in active development (see #todo, below), but already 
 
 It is intended to run a separate instance for each account you want to sync. You can (and should!) re-use the same `DB_CLIENT_ID` and `DB_CLIENT_SECRET` for all of your own instances. Use a cronjob or similar to touch the endpoint for every sync operation (I suggest twice a day). I do not recommend using this to sync anyone else's accounts.
 
-Set environment variables:
+Create a file `.env` containing environment variables:
 
 ```
 DB_CLIENT_ID
@@ -25,7 +25,12 @@ You have to create an App at [developer.db.com](https://developer.db.com) to get
 
 [Create a YNAB personal access token](https://api.youneedabudget.com/#personal-access-tokens) to use as your YNAB secret. The budget and account IDs are UUIDs you can get from the URL of the target account. For example, when viewing your account the URL may be `https://app.youneedabudget.com/ba1f67f1-5fba-4314-b4a3-94256409ff57/accounts/822de6c0-6967-4ad3-d4cf-f227dd58a7f9`. In that case the Budget ID is `ba1f67f1-5fba-4314-b4a3-94256409ff57`, and the account ID is `822de6c0-6967-4ad3-d4cf-f227dd58a7f9`.
 
-With those env vars set, run the application. With a web browser, visit port `3000` wherever it's running - likely `http://localhost:3000`. On your first visit it will redirect you to the DB authentication page, where you must sign into your account. On all subsequent visits, it will simply sync.
+With those env vars in `.env`, you're ready to run the application.
+
+*If you have docker*: run the application with `./start.sh`. 
+*If you don't have docker*: install golang, compile with `go build` and run.
+
+With a web browser, visit port `3000` wherever it's running - likely `http://localhost:3000`. On your first visit it will redirect you to the DB authentication page, where you must sign into your account. On all subsequent visits, it will simply sync.
 
 NB:
 
