@@ -60,6 +60,5 @@ I have notified DB about these issues, but if you're helping out you deserve to 
 
 * refactor a bit for clarity.
 * refactor tests for clarity
-* include dockerfile in the repo
 * build/publish on Docker hub as a GH action
 * sync upcoming transactions which haven't posted yet.
