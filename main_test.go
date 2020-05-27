@@ -1,288 +1,121 @@
 package main
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
-	"time"
 
-	"golang.org/x/oauth2"
+	"github.com/ohthehugemanatee/db-to-ynab-golang/dbapi"
+	"github.com/ohthehugemanatee/db-to-ynab-golang/tools"
+	"go.bmvs.io/ynab/api"
+	"go.bmvs.io/ynab/api/transaction"
 	"gopkg.in/h2non/gock.v1"
 )
 
 const (
-	goodIban                 string = "DE49500105178844289951"
-	badIban                  string = "DE10010000000000006136"
-	cashTransactionsResponse string = `{"transactions":[{"originIban":"DE10010000000000006136","amount":-19.05,"paymentReference":"POS MIT PIN. Mein Drogeriemarkt, Leipziger Str.","counterPartyName":"Rossmann","transactionCode":"123","valueDate":"2018-04-23","counterPartyIban":"","paymentIdentification":"212+ZKLE 911/696682-X-ABC","mandateReference":"MX0355443","externalBankTransactionDomainCode":"D001","externalBankTransactionFamilyCode":"CCRD","externalBankTransactionSubFamilyCode":"CWDL","bookingDate":"2019-11-04","id":"_2FMRe0AhzLaZu14Cz-lol2H_DDY4z9yIOJKrDlDjHCSCjlJk4dfM_2MOWo6JSezeNJJz5Fm23hOEFccXR0AXmZFmyFv_dI6xHu-DADUYh-_ue-2e1let853sS4-glBM","e2eReference":"E2E - Reference","currencyCode":"EUR","creditorId":"DE0222200004544221"}]}`
-	cardTransactionResponse  string = `{"totalItems":1,"items":[{"bookingDate":"2017-09-02","valueDate":"2017-09-02","billingDate":"2017-09-28","reasonForPayment":"Marvel Comics Inc.","amountInForeignCurrency":{"amount":42.21,"currency":"EUR"},"amountInAccountCurrency":{"amount":42.21,"currency":"EUR"},"foreignFxRate":{"sourceCurrency":"EUR","targetCurrency":"EUR","rate":1}}]}`
-	cardListResponse         string = `{  "totalItems": 1,  "items": [    {      "technicalId": "24842",      "embossedLine1": "DR HANS LUEDENSCHE",      "hasDebitFeatures": false,      "expiryDate": "10.2018",      "productName": "Deutsche Bank BusinessCard",      "securePAN": "************1599"    }  ]}`
-	technicalID              string = "24842"
+	goodIban           string = "DE49500105178844289951"
+	badIban            string = "DE10010000000000006136"
+	dummyYnabAccountID string = "f2b9e2c0-f927-2aa3-f2cf-f227d22fa7f9"
+	dummyYnabBudgetID  string = "b25f2ff7-5fba-f332-f4a2-24f32f02f857"
+	dummyYnabSecret    string = "bb97fbf01ebbfbd73fff33bfdcbf7bf30fbfb7f9b5dfea5c5ffb04bb52eb366b"
 )
 
-func TestRootHandler(t *testing.T) {
-	t.Run("Test redirect to authorize", func(t *testing.T) {
-		responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
-		assertStatus(t, http.StatusFound, responseRecorder.Code)
-	})
-	t.Run("Test with invalid account", func(t *testing.T) {
-		currentToken.RefreshToken = "refresh-token"
-		accountNumber = badIban
-		responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
-		assertStatus(t, http.StatusOK, responseRecorder.Code)
-		bodyBytes, _ := ioutil.ReadAll(responseRecorder.Body)
-		bodyString := string(bodyBytes)
-		expected := "Account ID is not recognized as a valid IBAN or the last 4 digits of a credit card"
-		if bodyString != expected {
-			t.Errorf("Got wrong value: got %s want %s", bodyString, expected)
-		}
-	})
-	t.Run("Test with valid cash account", func(t *testing.T) {
-		defer gock.Off()
-		currentToken = &oauth2.Token{
-			AccessToken: "ACCESS_TOKEN",
-			Expiry:      time.Now().AddDate(1, 0, 0)}
-		gock.New(DbAPIBaseURL).
-			Get("/gw/Dbapi/banking/transactions/v2/").
-			MatchParam("iban", accountNumber).
-			MatchParam("limit", "100").
-			MatchHeader("Authorization", "^Bearer (.*)$").
-			Reply(200).
-			BodyString(cashTransactionsResponse)
-		currentToken.RefreshToken = "refresh-token"
-		accountNumber = goodIban
-		responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
-		assertStatus(t, http.StatusOK, responseRecorder.Code)
-	})
-	t.Run("Test with valid credit account", func(t *testing.T) {
-		defer gock.Off()
-		currentToken = &oauth2.Token{
-			AccessToken: "ACCESS_TOKEN",
-			Expiry:      time.Now().AddDate(1, 0, 0),
-		}
-		gock.New(DbAPIBaseURL).
-			Get("gw/Dbapi/banking/creditCards/v1/").
-			MatchHeader("Authorization", "^Bearer (.*)$").
-			Reply(200).
-			BodyString(cardListResponse)
+var AuthorizedHandlerWasHit bool
 
-		gock.New(DbAPIBaseURL).
-			Get("gw/Dbapi/banking/creditCardTransactions/v1").
-			MatchParam("technicalId", technicalID).
-			MatchParam("bookingDateTo", time.Now().Format("2006-01-02")).
-			MatchParam("bookingDateFrom", time.Now().AddDate(0, 0, -10).Format("2006-01-02")).
-			MatchHeader("Authorization", "^Bearer (.*)$").
-			Reply(200).
-			BodyString(cardTransactionResponse)
-		currentToken.RefreshToken = "refresh-token"
-		accountNumber = "1599"
+var getTransactionsResponse []ynabTransaction = []ynabTransaction{}
+
+type testConnector struct {
+	AuthorizationURL string
+}
+
+func (c testConnector) IsValidAccountNumber(a string) (bool, error) {
+	return true, nil
+}
+
+func (c testConnector) GetTransactions(string) ([]ynabTransaction, error) {
+	return getTransactionsResponse, nil
+}
+func (c testConnector) Authorize() string {
+	return c.AuthorizationURL
+}
+
+func (c testConnector) AuthorizedHandler(http.ResponseWriter, *http.Request) {
+	AuthorizedHandlerWasHit = true
+}
+
+func TestRootHandler(t *testing.T) {
+	setDummyConnector(true)
+	t.Run("Test redirect to authorize url", func(t *testing.T) {
+		expectedURL := "https://example.com/"
+		activeConnector = testConnector{
+			AuthorizationURL: expectedURL,
+		}
 		responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
-		assertStatus(t, http.StatusOK, responseRecorder.Code)
+		tools.AssertStatus(t, http.StatusFound, responseRecorder.Code)
+		got, _ := responseRecorder.Result().Location()
+		if got.String() != expectedURL {
+			t.Errorf("Got wrong redirect URL. Got %s want %s", got, expectedURL)
+		}
+	})
+	t.Run("Test with valid account", func(t *testing.T) {
+		setDummyConnector(true)
+		setDummyTransactionResponse()
+		setDummyYnabData()
+		defer gock.Off()
+		gock.New("https://api.youneedabudget.com/").
+			Post("/v1/budgets/"+dummyYnabBudgetID+"/transactions/bulk").
+			MatchHeader("Authorization", "Bearer "+dummyYnabSecret).
+			Reply(200).
+			AddHeader("X-Rate-Limit", "36/200").
+			BodyString(`{"transactions":[{"account_id":"f2b9e2c0-f927-2aa3-f2cf-f227d22fa7f9","date":"2020-05-05","amount":10000,"cleared":"cleared","approved":true,"payee_id":null,"payee_name":"payee-name","category_id":null,"memo":null,"flag_color":null,"import_id":"import-id"}]}`)
+		connector := testConnector{}
+		connector.GetTransactions(goodIban)
+		responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
+		tools.AssertStatus(t, http.StatusOK, responseRecorder.Code)
 	})
 }
 
 func TestAuthorizedHandler(t *testing.T) {
-	t.Run("Failure with an empty \"code\" parameter", func(t *testing.T) {
-		t.Parallel()
-		responseRecorder := runDummyRequest(t, "GET", "/authorized", AuthorizedHandler)
-		assertStatus(t, http.StatusInternalServerError, responseRecorder.Code)
-	})
-	t.Run("Pass with a valid code parameter", func(t *testing.T) {
-		defer gock.Off()
-		gock.New(DbAPIBaseURL).
-			Post("/gw/oidc/token").
-			Reply(200).
-			JSON(map[string]string{"access_token": "ACCESS_TOKEN", "token_type": "bearer"})
+	t.Run("Hitting the authorization endpoint should hit the authorization handler", func(t *testing.T) {
+		setDummyConnector(true)
+		responseRecorder := runDummyRequest(t, "GET", "/authorized", activeConnector.AuthorizedHandler)
+		tools.AssertStatus(t, http.StatusOK, responseRecorder.Code)
+		if AuthorizedHandlerWasHit != true {
+			t.Error("Oauth authorization handler was not hit")
+		}
 
-		gock.New(DbAPIBaseURL).
-			Post("/gw/oidc/token").
-			Reply(200).
-			JSON(map[string]string{"access_token": "ACCESS_TOKEN", "token_type": "bearer"})
-
-		responseRecorder := runDummyRequest(t, "GET", "/authorized?code=abcdef", AuthorizedHandler)
-		assertStatus(t, http.StatusFound, responseRecorder.Code)
 	})
 }
 
-func TestGetCashTransactions(t *testing.T) {
-	t.Run("Test parsing transactions response from DB", func(t *testing.T) {
-
-		defer gock.Off()
-		iban := "test-iban"
-		//responseBody := `{"totalItems":0,"limit":0,"offset":0,"transactions":[{"id":"string","originIban":"string","amount":0,"counterPartyName":"string","counterPartyIban":"string","paymentReference":"string","bookingDate":"string","currencyCode":"string","transactionCode":"string","externalBankTransactionDomainCode":"string","externalBankTransactionFamilyCode":"string","externalBankTransactionSubFamilyCode":"string","mandateReference":"string","creditorId":"string","e2eReference":"string","paymentIdentification":"string","valueDate":"string"}]}`
-		currentToken = &oauth2.Token{
-			AccessToken: "ACCESS_TOKEN",
-			Expiry:      time.Now().AddDate(1, 0, 0)}
-		gock.New(DbAPIBaseURL).
-			Get("/gw/Dbapi/banking/transactions/v2/").
-			MatchParam("iban", iban).
-			MatchParam("limit", "100").
-			MatchHeader("Authorization", "^Bearer (.*)$").
-			Reply(200).
-			BodyString(cashTransactionsResponse)
-		result := GetCashTransactions(iban)
-		marshalledResult, _ := json.Marshal(result)
-		stringResult := string(marshalledResult[:])
-		expected := `{"Transactions":[{"BookingDate":"2019-11-04","CounterPartyName":"Rossmann","PaymentReference":"POS MIT PIN. Mein Drogeriemarkt, Leipziger Str.","ID":"_2FMRe0AhzLaZu14Cz-lol2H_DDY4z9yIOJKrDlDjHCSCjlJk4dfM_2MOWo6JSezeNJJz5Fm23hOEFccXR0AXmZFmyFv_dI6xHu-DADUYh-_ue-2e1let853sS4-glBM","Amount":-19.05}]}`
-		if stringResult != expected {
-			t.Errorf("Got wrong value: got %s want %s",
-				stringResult, expected)
-		}
-	})
-}
-
-func TestConvertCashTransactionsToYNAB(t *testing.T) {
-	t.Run("Test converting cash transactions to ynab format", func(t *testing.T) {
-		ynabAccountID = "account-id"
-		input := []byte(cashTransactionsResponse)
-		var DbTransactionsList DbCashTransactionsList
-		json.Unmarshal(input, &DbTransactionsList)
-		converted := ConvertCashTransactionsToYNAB(DbTransactionsList)
-		marshalledOutput, err := json.Marshal((converted))
-		output := string(marshalledOutput)
-		if err != nil {
-			log.Fatal(err)
-		}
-		expected := string(`[{"account_id":"account-id","date":"2019-11-04","amount":-19050,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Rossmann","category_id":null,"memo":"POS MIT PIN. Mein Drogeriemarkt, Leipziger Str.","flag_color":null,"import_id":"4b57e244083bddaef7036b3f7d55c7cb"}]`)
-		if output != expected {
-			t.Errorf("Got wrong value: got %s wanted %s", output, expected)
-		}
-	})
-}
-
-func TestConvertCreditTransactionsToYNAB(t *testing.T) {
-	t.Run("Test converting credit transactions to ynab format", func(t *testing.T) {
-		ynabAccountID = "account-id"
-		input := []byte(cardTransactionResponse)
-		var DbTransactionsList DbCreditTransactionsList
-		json.Unmarshal(input, &DbTransactionsList)
-		converted := ConvertCreditTransactionsToYNAB(DbTransactionsList)
-		marshalledOutput, err := json.Marshal((converted))
-		output := string(marshalledOutput)
-		if err != nil {
-			log.Fatal(err)
-		}
-		expected := string(`[{"account_id":"account-id","date":"2017-09-02","amount":42210,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Marvel Comics Inc.","category_id":null,"memo":null,"flag_color":null,"import_id":"5881cb1c0abd80695891732f39924704"}]`)
-		if output != expected {
-			t.Errorf("Got wrong value: got %s wanted %s", output, expected)
-		}
-	})
-}
-
-func TestIsCredit(t *testing.T) {
-	t.Run("Test rejecting malformed card numbers", func(t *testing.T) {
-		cardNumbers := map[string]bool{
-			"1234":  true,
-			"11f1":  false,
-			"123":   false,
-			"12345": false,
-		}
-		for num, expected := range cardNumbers {
-			got := IsCredit(num)
-			if got != expected {
-				t.Errorf("Card %v returned %v, should have been %v", num, got, expected)
-			}
-		}
-	})
-}
-
-func TestGetAccountType(t *testing.T) {
+func TestGetConnector(t *testing.T) {
+	setRealConnectors(true)
 	t.Run("Detect valid IBAN", func(t *testing.T) {
-		testValidAccount(t, goodIban, Cash)
+		assertGetsConnector(t, goodIban, dbapi.DbCashConnector{})
 	})
 	t.Run("Detect valid last 4 digits from a credit card", func(t *testing.T) {
-		testValidAccount(t, "1234", Credit)
+		assertGetsConnector(t, "1234", dbapi.DbCreditConnector{})
 	})
 	t.Run("Detect invalid IBAN", func(t *testing.T) {
-		result, err := GetAccountType(badIban)
-		if result != "" {
+		result, err := GetConnector(badIban)
+		if result != nil {
 			t.Errorf("IBAN %v not detected as invalid", badIban)
 		}
-		if err == nil {
-			t.Error("Invalid IBAN did not return an error")
+		if err.Error() != "Account number is not recognized by any connector" {
+			t.Error("Invalid IBAN did not return desired error")
 		}
 	})
 }
 
-func testValidAccount(t *testing.T, account string, expect AccountType) {
-	result, err := GetAccountType(account)
-	if result != expect {
-		t.Errorf("Account type for %v not detected as %v", result, expect)
-	}
+func assertGetsConnector(t *testing.T, accountID string, expect BankConnector) {
+	expectString := reflect.TypeOf(expect).String()
+	result, err := GetConnector(accountID)
 	if err != nil {
-		t.Errorf("Inappropriate error %v returned for valid iban %v", err.Error(), account)
+		t.Errorf("Unexpected error %v returned for account ID %s", err.Error(), accountID)
 	}
-}
-
-func TestGetCreditTransactions(t *testing.T) {
-	t.Run("Test with valid data", func(t *testing.T) {
-		testSuccessfulGetCreditTransactions(t)
-	})
-	t.Run("Test with invalid data", func(t *testing.T) {
-		testFailingGetCreditTransactions(t)
-	})
-}
-
-func testSuccessfulGetCreditTransactions(t *testing.T) {
-	defer gock.Off()
-	last4 := "1599"
-	technicalID := "24842"
-	cardTransactionResponse := `{"totalItems":1,"items":[{"bookingDate":"2017-09-02","valueDate":"2017-09-02","billingDate":"2017-09-28","reasonForPayment":"Marvel Comics Inc.","amountInForeignCurrency":{"amount":42.21,"currency":"EUR"},"amountInAccountCurrency":{"amount":42.21,"currency":"EUR"},"foreignFxRate":{"sourceCurrency":"EUR","targetCurrency":"EUR","rate":1}}]}`
-	cardListResponse := `{  "totalItems": 1,  "items": [    {      "technicalId": "24842",      "embossedLine1": "DR HANS LUEDENSCHE",      "hasDebitFeatures": false,      "expiryDate": "10.2018",      "productName": "Deutsche Bank BusinessCard",      "securePAN": "************1599"    }  ]}`
-	currentToken = &oauth2.Token{
-		AccessToken: "ACCESS_TOKEN",
-		Expiry:      time.Now().AddDate(1, 0, 0),
-	}
-	gock.New(DbAPIBaseURL).
-		Get("gw/Dbapi/banking/creditCards/v1/").
-		MatchHeader("Authorization", "^Bearer (.*)$").
-		Reply(200).
-		BodyString(cardListResponse)
-
-	gock.New(DbAPIBaseURL).
-		Get("gw/Dbapi/banking/creditCardTransactions/v1").
-		MatchParam("technicalId", technicalID).
-		MatchParam("bookingDateTo", time.Now().Format("2006-01-02")).
-		MatchParam("bookingDateFrom", time.Now().AddDate(0, 0, -10).Format("2006-01-02")).
-		MatchHeader("Authorization", "^Bearer (.*)$").
-		Reply(200).
-		BodyString(cardTransactionResponse)
-	result, _ := GetCreditTransactions(last4)
-	marshalledResult, _ := json.Marshal(result)
-	stringResult := string(marshalledResult[:])
-	expected := `{"Items":[{"BookingDate":"2017-09-02","ReasonForPayment":"Marvel Comics Inc.","AmountInAccountCurrency":{"Amount":42.21}}]}`
-	if stringResult != expected {
-		t.Errorf("Got wrong value: got %s want %s",
-			stringResult, expected)
-	}
-}
-
-func testFailingGetCreditTransactions(t *testing.T) {
-	defer gock.Off()
-	last4 := "1598"
-	cardListResponse := `{  "totalItems": 1,  "items": [    {      "technicalId": "24842",      "embossedLine1": "DR HANS LUEDENSCHE",      "hasDebitFeatures": false,      "expiryDate": "10.2018",      "productName": "Deutsche Bank BusinessCard",      "securePAN": "************1599"    }  ]}`
-	currentToken = &oauth2.Token{
-		AccessToken: "ACCESS_TOKEN",
-		Expiry:      time.Now().AddDate(1, 0, 0),
-	}
-	gock.New(DbAPIBaseURL).
-		Get("gw/Dbapi/banking/creditCards/v1/").
-		MatchHeader("Authorization", "^Bearer (.*)$").
-		Reply(200).
-		BodyString(cardListResponse)
-
-	_, err := GetCreditTransactions(last4)
-	if err == nil {
-		t.Error("Did not error out on invalid credit card number")
-	}
-}
-
-func assertStatus(t *testing.T, expected int, got int) {
-	if got != expected {
-		t.Errorf("Got wrong status code: got %v want %v",
-			got, expected)
+	resultString := reflect.TypeOf(result).String()
+	if resultString != expectString {
+		t.Errorf("Account type for %s detected as %s, expected %s", accountID, resultString, expectString)
 	}
 }
 
@@ -295,4 +128,48 @@ func runDummyRequest(t *testing.T, verb string, path string, handlerFunc func(w 
 	handler := http.HandlerFunc(handlerFunc)
 	handler.ServeHTTP(responseRecorder, request)
 	return *responseRecorder
+}
+
+func setDummyConnector(setActiveConnector bool) {
+	availableConnectors = []BankConnector{
+		testConnector{},
+	}
+	if setActiveConnector {
+		activeConnector = testConnector{}
+		return
+	}
+	activeConnector = nil
+}
+
+func setRealConnectors(unsetActiveConnector bool) {
+	availableConnectors = []BankConnector{
+		dbapi.DbCashConnector{},
+		dbapi.DbCreditConnector{},
+	}
+	if unsetActiveConnector {
+		activeConnector = nil
+	}
+}
+
+func setDummyTransactionResponse() {
+	date, _ := api.DateFromString("2020-05-05")
+	payeeName := string("payee-name")
+	importID := string("import-id")
+	getTransactionsResponse = []ynabTransaction{
+		{
+			AccountID: dummyYnabAccountID,
+			Date:      date,
+			Amount:    10000,
+			Cleared:   transaction.ClearingStatusCleared,
+			Approved:  true,
+			PayeeName: &payeeName,
+			ImportID:  &importID,
+		},
+	}
+}
+
+func setDummyYnabData() {
+	ynabAccountID = dummyYnabAccountID
+	ynabBudgetID = dummyYnabBudgetID
+	ynabSecret = dummyYnabSecret
 }
