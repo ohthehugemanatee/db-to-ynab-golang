@@ -4,7 +4,7 @@ An API based sync from Deutsche Bank accounts to You Need a Budget.
 
 ![Go](https://github.com/ohthehugemanatee/db-to-ynab-golang/workflows/Go/badge.svg?branch=master)
 
-This application is still in active development (see #todo, below), but already works perfectly well for home use. Please submit issues as you find them!
+This application is still in active development (see #todo, below), but already works well for home use. Please submit issues as you find them!
 
 ## To run
 
@@ -45,6 +45,27 @@ This project is configured with [a dev container for VSCode](https://code.visual
 
 Issues and PRs are welcome!
 
+### To implement your own bank connector
+
+There is no concept of dynamic plugins in golang, really. Your bank connector will have to be compiled in.
+
+* Add a package for your bank in its own subdirectory.
+* Write a struct that implements the `BankConnector` interface. It must implement:
+```
+// Checks if the account number is valid for this connector.
+IsValidAccountNumber(string) (bool, error)
+// Gets YNAB formatted transactions.
+GetTransactions(string) ([]ynabTransaction, error)
+// Returns an oauth authorization url if necessary.
+Authorize() string
+// Handles an oauth response if necessary
+AuthorizedHandler(http.ResponseWriter, *http.Request)
+```
+* Add your struct to the `availableConnectors []BankConnector` slice in `main.go`. 
+* (first person only) improve how `main.GetConnector()` works to differentiate between DB and your own bank. :) Pretty quickly we'll have to move to an environment variable to select your connector.
+
+Make a PR even with your work-in-progress, I'm happy to help you out!
+
 ### Gotchas in DB sandbox
 
 If you start a new API app with DB, you are confined to a sandbox of test accounts/data until your app has been approved. Everything works as expected, except:
@@ -63,6 +84,6 @@ I have notified DB about these issues, but if you're helping out you deserve to 
 
 ### TODO
 
-* refactor a bit for clarity.
 * refactor tests for clarity
+* more consistent error passing/handling
 * sync upcoming transactions which haven't posted yet.
