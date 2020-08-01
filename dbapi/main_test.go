@@ -46,6 +46,7 @@ func TestAuthorize(t *testing.T) {
 }
 
 func TestAuthorizedHandler(t *testing.T) {
+	dbAPIBaseURL = "https://example.com/"
 	t.Run("Failure with an empty \"code\" parameter", func(t *testing.T) {
 		t.Parallel()
 		responseRecorder := runDummyRequest(t, "GET", "/authorized", AuthorizedHandler)

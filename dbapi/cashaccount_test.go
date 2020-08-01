@@ -32,6 +32,7 @@ func TestGetTransactions(t *testing.T) {
 	}
 	// Set a dummy YNAB Budget ID.
 	ynabAccountID = "account-id"
+	dbAPIBaseURL = "https://example.com/"
 	t.Run("Test parsing transactions response from DB", func(t *testing.T) {
 		defer gock.Off()
 		gock.New(dbAPIBaseURL).
@@ -55,6 +56,7 @@ func TestGetTransactions(t *testing.T) {
 func TestConvertCashTransactionsToYNAB(t *testing.T) {
 	t.Run("Test converting cash transactions to ynab format", func(t *testing.T) {
 		ynabAccountID = "account-id"
+		dbAPIBaseURL = "https://example.com/"
 		input := []byte(cashTransactionsResponse)
 		var DbTransactionsList DbCashTransactionsList
 		json.Unmarshal(input, &DbTransactionsList)
