@@ -17,12 +17,14 @@ var (
 	dbClientID     string = os.Getenv("DB_CLIENT_ID")
 	dbClientSecret string = os.Getenv("DB_CLIENT_SECRET")
 	dbAPIBaseURL   string = os.Getenv("DB_API_ENDPOINT_HOSTNAME")
+	redirectURL    string = os.Getenv("REDIRECT_BASE_URL") + "/authorized"
 	currentToken          = &oauth2.Token{}
 )
 
 var oauth2Conf = &oauth2.Config{
 	ClientID:     dbClientID,
 	ClientSecret: dbClientSecret,
+	RedirectURL:  redirectURL,
 	Scopes:       []string{"read_transactions", "read_accounts", "read_credit_cards_list_with_details", "read_credit_card_transactions", "offline_access"},
 	Endpoint: oauth2.Endpoint{
 		AuthURL:  dbAPIBaseURL + "gw/oidc/authorize",
