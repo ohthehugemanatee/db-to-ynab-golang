@@ -43,6 +43,22 @@ func Authorize() string {
 	return ""
 }
 
+// CheckParams ensures that all parameters are provided and fails hard if not.
+func CheckParams() {
+	var params = map[string]string{
+		"accountNumber":  accountNumber,
+		"dbClientID":     dbClientID,
+		"dbClientSecret": dbClientSecret,
+		"dbAPIBaseURL":   dbAPIBaseURL,
+		"redirectURL":    redirectURL,
+	}
+	for i, v := range params {
+		if v == "" {
+			panic("Missing/empty parameter" + i)
+		}
+	}
+}
+
 // AuthorizedHandler handles the oauth HTTP response.
 func AuthorizedHandler(w http.ResponseWriter, r *http.Request) {
 	var code string = r.URL.Query().Get("code")

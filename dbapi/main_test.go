@@ -70,6 +70,36 @@ func TestAuthorizedHandler(t *testing.T) {
 	})
 }
 
+func TestCheckParams(t *testing.T) {
+	t.Run("Panic when missing a parameter", func(t *testing.T) {
+		var values [5]string
+		// Try checking params with each possible param empty.
+		for i := range values {
+			values[i] = "dummy_value"
+		}
+		for i := range values {
+			valuesWithOneEmpty := values
+			valuesWithOneEmpty[i] = ""
+			setParams(valuesWithOneEmpty)
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("The code did not panic")
+				}
+			}()
+			CheckParams()
+		}
+
+	})
+}
+
+func setParams(values [5]string) {
+	accountNumber = values[0]
+	dbClientID = values[1]
+	dbClientSecret = values[2]
+	dbAPIBaseURL = values[3]
+	redirectURL = values[4]
+}
+
 func setTestOauth2Config() {
 	dbAPIBaseURL = "https://example.com/"
 	oauth2Conf = &oauth2.Config{
