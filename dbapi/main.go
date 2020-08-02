@@ -16,7 +16,7 @@ var (
 	accountNumber  string = os.Getenv("DB_ACCOUNT")
 	dbClientID     string = os.Getenv("DB_CLIENT_ID")
 	dbClientSecret string = os.Getenv("DB_CLIENT_SECRET")
-	dbAPIBaseURL   string = "https://simulator-api.db.com/"
+	dbAPIBaseURL   string = os.Getenv("DB_API_ENDPOINT_HOSTNAME")
 	currentToken          = &oauth2.Token{}
 )
 
