@@ -27,7 +27,7 @@ You have to create an App at [developer.db.com](https://developer.db.com) to get
 
 [Create a YNAB personal access token](https://api.youneedabudget.com/#personal-access-tokens) to use as your YNAB secret. The budget and account IDs are UUIDs you can get from the URL of the target account. For example, when viewing your account the URL may be `https://app.youneedabudget.com/ba1f67f1-5fba-4314-b4a3-94256409ff57/accounts/822de6c0-6967-4ad3-d4cf-f227dd58a7f9`. In that case the Budget ID is `ba1f67f1-5fba-4314-b4a3-94256409ff57`, and the account ID is `822de6c0-6967-4ad3-d4cf-f227dd58a7f9`.
 
-`REDIRECT_BASE_URL` is the accessible (to you) URL of this application. As a part of the DB authentication flow, the DB API has to validate that it is redirecting you to an allowed URL (per your API app).
+`REDIRECT_BASE_URL` is the accessible (to you) URL of this application. As a part of the DB authentication flow, the DB API has to validate that it is redirecting you to an allowed URL (per your API app). This value should end in a `/`, e.g. `https://example.com/my-bank-sync/`.
 
 With those env vars in `.env`, you're ready to run the application.
 

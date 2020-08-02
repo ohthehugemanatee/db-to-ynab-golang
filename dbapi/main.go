@@ -18,7 +18,7 @@ var (
 	dbClientID     string = os.Getenv("DB_CLIENT_ID")
 	dbClientSecret string = os.Getenv("DB_CLIENT_SECRET")
 	dbAPIBaseURL   string = os.Getenv("DB_API_ENDPOINT_HOSTNAME")
-	redirectURL    string = os.Getenv("REDIRECT_BASE_URL") + "/authorized"
+	redirectURL    string = os.Getenv("REDIRECT_BASE_URL") + "authorized"
 	currentToken          = &oauth2.Token{}
 )
 
