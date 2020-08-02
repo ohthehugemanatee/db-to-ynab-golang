@@ -3,6 +3,7 @@ package dbapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -44,7 +45,7 @@ func Authorize() string {
 }
 
 // CheckParams ensures that all parameters are provided and fails hard if not.
-func CheckParams() {
+func CheckParams() (bool, error) {
 	var params = map[string]string{
 		"accountNumber":  accountNumber,
 		"dbClientID":     dbClientID,
@@ -52,11 +53,12 @@ func CheckParams() {
 		"dbAPIBaseURL":   dbAPIBaseURL,
 		"redirectURL":    redirectURL,
 	}
-	for i, v := range params {
+	for _, v := range params {
 		if v == "" {
-			panic("Missing/empty parameter" + i)
+			return false, errors.New("missing/empty connector parameter detected")
 		}
 	}
+	return true, nil
 }
 
 // AuthorizedHandler handles the oauth HTTP response.

@@ -81,12 +81,10 @@ func TestCheckParams(t *testing.T) {
 			valuesWithOneEmpty := values
 			valuesWithOneEmpty[i] = ""
 			setParams(valuesWithOneEmpty)
-			defer func() {
-				if r := recover(); r == nil {
-					t.Errorf("The code did not panic")
-				}
-			}()
-			CheckParams()
+			_, err := CheckParams()
+			if err == nil {
+				t.Errorf("Missing parameter did not return an error")
+			}
 		}
 
 	})
