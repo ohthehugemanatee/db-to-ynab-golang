@@ -29,6 +29,10 @@ type testConnector struct {
 	AuthorizationURL string
 }
 
+func (c testConnector) CheckParams() (bool, error) {
+	return true, nil
+}
+
 func (c testConnector) IsValidAccountNumber(a string) (bool, error) {
 	return true, nil
 }

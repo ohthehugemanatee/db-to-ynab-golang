@@ -40,6 +40,11 @@ type DbCreditCardsList struct {
 // DbCreditConnector is the connector for DB Credit card accounts.
 type DbCreditConnector struct{}
 
+// CheckParams ensures that all parameters are provided.
+func (connector DbCreditConnector) CheckParams() (bool, error) {
+	return CheckParams()
+}
+
 // IsValidAccountNumber validates that the account number can be processed by this interface.
 func (connector DbCreditConnector) IsValidAccountNumber(accountNumber string) (bool, error) {
 	re := regexp.MustCompile(`^[0-9]{4}$`)
