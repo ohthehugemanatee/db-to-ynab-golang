@@ -34,7 +34,7 @@ func TestAuthorize(t *testing.T) {
 			"access_type":   "offline",
 			"client_id":     dummyClientID,
 			"response_type": "code",
-			"scope":         "read_transactions read_accounts read_credit_cards_list_with_details read_credit_card_transactions offline_access",
+			"scope":         "read_transactions read_accounts_list read_credit_cards_list_with_details read_credit_card_transactions",
 			"state":         "state",
 		}
 		for key, value := range expectedParams {

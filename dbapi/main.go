@@ -26,7 +26,7 @@ var oauth2Conf = &oauth2.Config{
 	ClientID:     dbClientID,
 	ClientSecret: dbClientSecret,
 	RedirectURL:  redirectURL,
-	Scopes:       []string{"read_transactions", "read_accounts", "read_credit_cards_list_with_details", "read_credit_card_transactions", "offline_access"},
+	Scopes:       []string{"read_transactions", "read_accounts_list", "read_credit_cards_list_with_details", "read_credit_card_transactions"},
 	Endpoint: oauth2.Endpoint{
 		AuthURL:  dbAPIBaseURL + "gw/oidc/authorize",
 		TokenURL: dbAPIBaseURL + "gw/oidc/token",
