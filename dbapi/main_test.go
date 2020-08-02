@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ohthehugemanatee/db-to-ynab-golang/tools"
+	"golang.org/x/oauth2"
 	"gopkg.in/h2non/gock.v1"
 )
 
@@ -46,7 +47,7 @@ func TestAuthorize(t *testing.T) {
 }
 
 func TestAuthorizedHandler(t *testing.T) {
-	dbAPIBaseURL = "https://example.com/"
+	setTestOauth2Config()
 	t.Run("Failure with an empty \"code\" parameter", func(t *testing.T) {
 		t.Parallel()
 		responseRecorder := runDummyRequest(t, "GET", "/authorized", AuthorizedHandler)
@@ -67,4 +68,17 @@ func TestAuthorizedHandler(t *testing.T) {
 		responseRecorder := runDummyRequest(t, "GET", "/authorized?code=abcdef", AuthorizedHandler)
 		tools.AssertStatus(t, http.StatusFound, responseRecorder.Code)
 	})
+}
+
+func setTestOauth2Config() {
+	dbAPIBaseURL = "https://example.com/"
+	oauth2Conf = &oauth2.Config{
+		ClientID:     dbClientID,
+		ClientSecret: dbClientSecret,
+		Scopes:       []string{"read_transactions", "read_accounts", "read_credit_cards_list_with_details", "read_credit_card_transactions", "offline_access"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  dbAPIBaseURL + "gw/oidc/authorize",
+			TokenURL: dbAPIBaseURL + "gw/oidc/token",
+		},
+	}
 }
