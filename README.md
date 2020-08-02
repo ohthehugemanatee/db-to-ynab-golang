@@ -17,6 +17,7 @@ DB_CLIENT_ID
 DB_CLIENT_SECRET
 DB_ACCOUNT
 DB_API_ENDPOINT_BASEURI
+REDIRECT_BASE_URL
 YNAB_SECRET
 YNAB_BUDGET_ID
 YNAB_ACCOUNT_ID
@@ -25,6 +26,8 @@ YNAB_ACCOUNT_ID
 You have to create an App at [developer.db.com](https://developer.db.com) to get the DB client ID and secret. Note that there is a slow (~2 weeks!) process for approval to get access to real live bank data. `DB_ACCOUNT` is either the IBAN of a cash account, or the last 4 digits of a credit card number. `DB_API_ENDPOINT_HOSTNAME` is the hostname of the DB api endpoint. It is `https://simulator-api.db.com/` for apps in the sandbox, and `https://api.db.com/` for live apps.
 
 [Create a YNAB personal access token](https://api.youneedabudget.com/#personal-access-tokens) to use as your YNAB secret. The budget and account IDs are UUIDs you can get from the URL of the target account. For example, when viewing your account the URL may be `https://app.youneedabudget.com/ba1f67f1-5fba-4314-b4a3-94256409ff57/accounts/822de6c0-6967-4ad3-d4cf-f227dd58a7f9`. In that case the Budget ID is `ba1f67f1-5fba-4314-b4a3-94256409ff57`, and the account ID is `822de6c0-6967-4ad3-d4cf-f227dd58a7f9`.
+
+`REDIRECT_BASE_URL` is the accessible (to you) URL of this application. As a part of the DB authentication flow, the DB API has to validate that it is redirecting you to an allowed URL (per your API app). This value should end in a `/`, e.g. `https://example.com/my-bank-sync/`.
 
 With those env vars in `.env`, you're ready to run the application.
 

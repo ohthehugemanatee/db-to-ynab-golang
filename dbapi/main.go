@@ -3,6 +3,7 @@ package dbapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -17,12 +18,14 @@ var (
 	dbClientID     string = os.Getenv("DB_CLIENT_ID")
 	dbClientSecret string = os.Getenv("DB_CLIENT_SECRET")
 	dbAPIBaseURL   string = os.Getenv("DB_API_ENDPOINT_HOSTNAME")
+	redirectURL    string = os.Getenv("REDIRECT_BASE_URL") + "authorized"
 	currentToken          = &oauth2.Token{}
 )
 
 var oauth2Conf = &oauth2.Config{
 	ClientID:     dbClientID,
 	ClientSecret: dbClientSecret,
+	RedirectURL:  redirectURL,
 	Scopes:       []string{"read_transactions", "read_accounts", "read_credit_cards_list_with_details", "read_credit_card_transactions", "offline_access"},
 	Endpoint: oauth2.Endpoint{
 		AuthURL:  dbAPIBaseURL + "gw/oidc/authorize",
@@ -39,6 +42,23 @@ func Authorize() string {
 		return url
 	}
 	return ""
+}
+
+// CheckParams ensures that all parameters are provided and fails hard if not.
+func CheckParams() (bool, error) {
+	var params = map[string]string{
+		"accountNumber":  accountNumber,
+		"dbClientID":     dbClientID,
+		"dbClientSecret": dbClientSecret,
+		"dbAPIBaseURL":   dbAPIBaseURL,
+		"redirectURL":    redirectURL,
+	}
+	for _, v := range params {
+		if v == "" {
+			return false, errors.New("missing/empty connector parameter detected")
+		}
+	}
+	return true, nil
 }
 
 // AuthorizedHandler handles the oauth HTTP response.

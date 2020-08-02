@@ -32,6 +32,11 @@ var ynabAccountID string = os.Getenv("YNAB_ACCOUNT_ID")
 // DbCashConnector gets transactions from a DB Cash account and converts to YNAB format.
 type DbCashConnector struct{}
 
+// CheckParams ensures that all parameters are provided.
+func (connector DbCashConnector) CheckParams() (bool, error) {
+	return CheckParams()
+}
+
 // IsValidAccountNumber validates that the account number can be processed by this interface.
 func (connector DbCashConnector) IsValidAccountNumber(accountNumber string) (bool, error) {
 	isCorrectIban, _, _ := iban.IsCorrectIban(accountNumber, false)
