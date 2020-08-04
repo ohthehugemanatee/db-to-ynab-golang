@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"golang.org/x/oauth2"
 )
@@ -114,11 +113,7 @@ type FileSystemTokenStore struct {
 }
 
 func (f *FileSystemTokenStore) GetToken() oauth2.Token {
-	timeZone, _ := time.LoadLocation("UTC")
-	return oauth2.Token{
-		AccessToken:  "accessToken",
-		TokenType:    "tokenType",
-		RefreshToken: "refreshToken",
-		Expiry:       time.Date(2006, time.January, 02, 15, 04, 05, 999999999, timeZone),
-	}
+	var token interface{}
+	json.NewDecoder(f.database).Decode(&token)
+	return oauth2.Token{}
 }
