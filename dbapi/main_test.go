@@ -90,6 +90,16 @@ func TestCheckParams(t *testing.T) {
 	})
 }
 
+func TestSetCurrentToken(t *testing.T) {
+	t.Run("Set a token and retrieve it later", func(t *testing.T) {
+		tokenValue := "testing-current-token"
+		SetCurrentToken(&oauth2.Token{AccessToken: tokenValue})
+		if currentToken.AccessToken != tokenValue {
+			t.Errorf("Failed retrieving set token. Got %s expected %s", currentToken.AccessToken, tokenValue)
+		}
+	})
+}
+
 func setParams(values [5]string) {
 	accountNumber = values[0]
 	dbClientID = values[1]
