@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"golang.org/x/oauth2"
 )
@@ -105,4 +107,18 @@ func UpdateToken(code string) error {
 // SetCurrentToken sets the currently active token. Mostly useful for tests.
 func SetCurrentToken(token *oauth2.Token) {
 	currentToken = token
+}
+
+type FileSystemTokenStore struct {
+	database io.Reader
+}
+
+func (f *FileSystemTokenStore) GetToken() oauth2.Token {
+	timeZone, _ := time.LoadLocation("UTC")
+	return oauth2.Token{
+		AccessToken:  "accessToken",
+		TokenType:    "tokenType",
+		RefreshToken: "refreshToken",
+		Expiry:       time.Date(2006, time.January, 02, 15, 04, 05, 999999999, timeZone),
+	}
 }

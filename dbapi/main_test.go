@@ -3,7 +3,9 @@ package dbapi
 import (
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
+	"time"
 
 	"golang.org/x/oauth2"
 	"gopkg.in/h2non/gock.v1"
@@ -96,6 +98,30 @@ func TestSetCurrentToken(t *testing.T) {
 		if currentToken.AccessToken != tokenValue {
 			t.Errorf("Failed retrieving set token. Got %s expected %s", currentToken.AccessToken, tokenValue)
 		}
+	})
+	t.Run("Save a token to the file store and retrieve it later", func(t *testing.T) {
+		database := strings.NewReader(`{
+			"AccessToken": "accessToken"',
+			"TokenType": "tokenType",
+			"RefreshToken": "refreshToken",
+			"Expiry": "2006-01-02 15:04:05.999999999 -0700 UTC",
+			"raw": {}`)
+
+		store := FileSystemTokenStore{database}
+
+		got := store.GetToken()
+		timeZone, _ := time.LoadLocation("UTC")
+		want := oauth2.Token{
+			AccessToken:  "accessToken",
+			TokenType:    "tokenType",
+			RefreshToken: "refreshToken",
+			Expiry:       time.Date(2006, time.January, 02, 15, 04, 05, 999999999, timeZone),
+		}
+
+		if got != want {
+			t.Errorf("Did not load the same token we set. Got %s wanted %s", got, want)
+		}
+
 	})
 }
 
