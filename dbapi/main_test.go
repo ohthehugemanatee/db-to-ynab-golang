@@ -1,9 +1,9 @@
 package dbapi
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/url"
-	"strings"
 	"testing"
 	"time"
 
@@ -100,18 +100,20 @@ func TestSetCurrentToken(t *testing.T) {
 		}
 	})
 	t.Run("Save a token to the file store and retrieve it later", func(t *testing.T) {
-		database := strings.NewReader(`{
-			"AccessToken": "accessToken",
-			"TokenType": "tokenType",
-			"RefreshToken": "refreshToken",
-			"Expiry": "2006-01-02 15:04:05.999999999 -0700 UTC",
-			"raw": {
-			  
-			},
-			
-		  }`)
+		type bullshit struct {
+			AccessToken  string
+			TokenType    string
+			RefreshToken string
+			Expiry       string
+		}
+		json, _ := json.Marshal(bullshit{
+			AccessToken:  "accessToken",
+			TokenType:    "tokenType",
+			RefreshToken: "refreshToken",
+			Expiry:       "2006-01-02 15:04:05.999999999 -0700 UTC",
+		})
 
-		store := FileSystemTokenStore{database}
+		store := FileSystemTokenStore{json}
 
 		got := store.GetToken()
 		timeZone, _ := time.LoadLocation("UTC")
