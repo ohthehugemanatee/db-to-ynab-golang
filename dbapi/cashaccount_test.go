@@ -15,7 +15,8 @@ import (
 // Handy test values.
 const (
 	goodIban                 string = "DE49500105178844289951"
-	badIban                  string = "DE10010000000000006136"
+	badIban                  string = "DE10010000000111106136"
+	testIban                 string = "DE10010000000000006136"
 	cashTransactionsResponse string = `{"transactions":[{"originIban":"DE10010000000000006136","amount":-19.05,"paymentReference":"POS MIT PIN. Mein Drogeriemarkt, Leipziger Str.","counterPartyName":"Rossmann","transactionCode":"123","valueDate":"2018-04-23","counterPartyIban":"","paymentIdentification":"212+ZKLE 911/696682-X-ABC","mandateReference":"MX0355443","externalBankTransactionDomainCode":"D001","externalBankTransactionFamilyCode":"CCRD","externalBankTransactionSubFamilyCode":"CWDL","bookingDate":"2019-11-04","id":"_2FMRe0AhzLaZu14Cz-lol2H_DDY4z9yIOJKrDlDjHCSCjlJk4dfM_2MOWo6JSezeNJJz5Fm23hOEFccXR0AXmZFmyFv_dI6xHu-DADUYh-_ue-2e1let853sS4-glBM","e2eReference":"E2E - Reference","currencyCode":"EUR","creditorId":"DE0222200004544221"}]}`
 	ynabAPIBaseURL           string = "https://api.youneedabudget.com/"
 )
@@ -89,6 +90,15 @@ func TestIsValidAccountNumber(t *testing.T) {
 		result, err := connector.IsValidAccountNumber(goodIban)
 		if err != nil {
 			t.Errorf("Inappropriate error %v returned for valid iban %v", err.Error(), goodIban)
+		}
+		if result != true {
+			t.Errorf("Incorrectly reported %v as an invalid IBAN", goodIban)
+		}
+	})
+	t.Run("Detect testing IBAN", func(t *testing.T) {
+		result, err := connector.IsValidAccountNumber(testIban)
+		if err != nil {
+			t.Errorf("Inappropriate error %v returned for testing iban %v", err.Error(), goodIban)
 		}
 		if result != true {
 			t.Errorf("Incorrectly reported %v as an invalid IBAN", goodIban)

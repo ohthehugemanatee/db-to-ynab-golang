@@ -39,6 +39,10 @@ func (connector DbCashConnector) CheckParams() (bool, error) {
 
 // IsValidAccountNumber validates that the account number can be processed by this interface.
 func (connector DbCashConnector) IsValidAccountNumber(accountNumber string) (bool, error) {
+	// Detect test account number.
+	if accountNumber == "DE10010000000000006136" {
+		return true, nil
+	}
 	isCorrectIban, _, _ := iban.IsCorrectIban(accountNumber, false)
 	return isCorrectIban, nil
 }
