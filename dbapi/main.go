@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"golang.org/x/oauth2"
 )
@@ -109,11 +109,22 @@ func SetCurrentToken(token *oauth2.Token) {
 }
 
 type FileSystemTokenStore struct {
-	database io.Reader
+	database []byte
 }
 
 func (f *FileSystemTokenStore) GetToken() oauth2.Token {
-	var token interface{}
-	json.NewDecoder(f.database).Decode(&token)
-	return oauth2.Token{}
+	var token struct {
+		AccessToken  string
+		TokenType    string
+		RefreshToken string
+		Expiry       string
+	}
+	json.Unmarshal(f.database, &token)
+	expiry, _ := time.Parse("2006-01-02 15:04:05.999999999 -0700 UTC", token.Expiry)
+	return oauth2.Token{
+		AccessToken:  token.AccessToken,
+		TokenType:    token.TokenType,
+		RefreshToken: token.RefreshToken,
+		Expiry:       expiry,
+	}
 }
