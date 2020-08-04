@@ -101,11 +101,15 @@ func TestSetCurrentToken(t *testing.T) {
 	})
 	t.Run("Save a token to the file store and retrieve it later", func(t *testing.T) {
 		database := strings.NewReader(`{
-			"AccessToken": "accessToken"',
+			"AccessToken": "accessToken",
 			"TokenType": "tokenType",
 			"RefreshToken": "refreshToken",
 			"Expiry": "2006-01-02 15:04:05.999999999 -0700 UTC",
-			"raw": {}`)
+			"raw": {
+			  
+			},
+			
+		  }`)
 
 		store := FileSystemTokenStore{database}
 
