@@ -79,8 +79,13 @@ func TestRootHandler(t *testing.T) {
 			BodyString(`{"transactions":[{"account_id":"f2b9e2c0-f927-2aa3-f2cf-f227d22fa7f9","date":"2020-05-05","amount":10000,"cleared":"cleared","approved":true,"payee_id":null,"payee_name":"payee-name","category_id":null,"memo":null,"flag_color":null,"import_id":"import-id"}]}`)
 		connector := testConnector{}
 		connector.GetTransactions(goodIban)
+		testLogBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
+		testLogBuffer.ExpectLog("Received HTTP request to /")
+		testLogBuffer.ExpectLog("Received 1 transactions from bank\nPosting transactions to YNAB")
+		testLogBuffer.ExpectLog("Ending run")
 		responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
 		tools.AssertStatus(t, http.StatusOK, responseRecorder.Code)
+		testLogBuffer.TestLogValues(t)
 	})
 }
 
