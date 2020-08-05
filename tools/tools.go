@@ -49,9 +49,7 @@ func (b *testLogBuffer) TestLogValues(t *testing.T) {
 	if strings.Compare(b.GotBuffer.String(), b.ExpectBuffer.String()) != 0 {
 		gotLog := b.GotBuffer.String()
 		wantLog := b.ExpectBuffer.String()
-		t.Logf("%+q\n", gotLog)
-		t.Logf("%+q\n", wantLog)
-		t.Errorf("Got wrong log output. Got %s want %s", gotLog, wantLog)
+		t.Errorf("Got wrong log output. Got %+q\n want %+q\n", gotLog, wantLog)
 	}
 }
 
