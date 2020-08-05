@@ -98,6 +98,7 @@ func (connector DbCreditConnector) getTechnicalID(last4 string) (string, error) 
 func (connector DbCreditConnector) ConvertCreditTransactionsToYNAB(incomingTransactions DbCreditTransactionsList) []ynabTransaction {
 	transactions := incomingTransactions.Items
 	var convertedTransactions []ynabTransaction
+	var convertedTransaction ynabTransaction
 	resultChannel := make(chan ynabTransaction)
 	defer close(resultChannel)
 	accountNumber := ynabAccountID
@@ -105,10 +106,10 @@ func (connector DbCreditConnector) ConvertCreditTransactionsToYNAB(incomingTrans
 		go func(t DbCreditTransaction) {
 			resultChannel <- connector.convertCreditTransactionToYNAB(accountNumber, transaction)
 		}(transaction)
-		for i := 0; i < len(transactions); i++ {
-			convertedTransaction := <-resultChannel
-			convertedTransactions = append(convertedTransactions, convertedTransaction)
-		}
+	}
+	for i := 0; i < len(transactions); i++ {
+		convertedTransaction = <-resultChannel
+		convertedTransactions = append(convertedTransactions, convertedTransaction)
 	}
 	return convertedTransactions
 }
