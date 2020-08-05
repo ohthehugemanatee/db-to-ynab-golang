@@ -45,26 +45,38 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Printf("Connector %T elected", activeConnector)
 	_, err = activeConnector.CheckParams()
 	if err != nil {
 		log.Fatal(err)
 	}
 	http.HandleFunc("/", RootHandler)
 	http.HandleFunc("/authorized", activeConnector.AuthorizedHandler)
+	log.Print("DB/YNAB sync server started, listening on port 3000.")
 	log.Fatal(http.ListenAndServe(":3000", nil))
 }
 
 // RootHandler handles HTTP requests to /
 func RootHandler(w http.ResponseWriter, r *http.Request) {
+	log.Print("Received HTTP request to /")
 	if url := activeConnector.Authorize(); url != "" {
+		log.Printf("We are not yet authorized, redirecting to %s", url)
 		http.Redirect(w, r, url, http.StatusFound)
 		return
 	}
 	convertedTransactions, _ := activeConnector.GetTransactions(accountNumber)
-	if len(convertedTransactions) == 0 {
+	transactionsCount := len(convertedTransactions)
+	log.Printf("Received %d transactions from bank", transactionsCount)
+	if transactionsCount == 0 {
+		log.Print("Ending run")
 		return
 	}
-	postTransactionsToYNAB(ynabSecret, ynabBudgetID, convertedTransactions)
+	log.Print("Posting transactions to YNAB")
+	err := postTransactionsToYNAB(ynabSecret, ynabBudgetID, convertedTransactions)
+	if err != nil {
+		log.Print(err)
+	}
+	log.Print("Ending run")
 }
 
 // GetConnector returns the first connector where the account number is valid.
@@ -78,14 +90,15 @@ func GetConnector(accountNumber string) (BankConnector, error) {
 			return connector, nil
 		}
 	}
-	return nil, errors.New("Account number is not recognized by any connector")
+	return nil, errors.New("Account number is not recognized by any connector, cannot proceed without a compatible connector")
 }
 
 // PostTransactionsToYNAB posts transactions to YNAB.
-func postTransactionsToYNAB(accessToken string, budgetID string, transactions []ynabTransaction) {
+func postTransactionsToYNAB(accessToken string, budgetID string, transactions []ynabTransaction) error {
 	c := ynab.NewClient(accessToken)
 	_, err := c.Transaction().BulkCreateTransactions(budgetID, transactions)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+	return nil
 }

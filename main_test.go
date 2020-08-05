@@ -15,7 +15,7 @@ import (
 
 const (
 	goodIban           string = "DE49500105178844289951"
-	badIban            string = "DE10010000000000006136"
+	badIban            string = "DE10010000000111106136"
 	dummyYnabAccountID string = "f2b9e2c0-f927-2aa3-f2cf-f227d22fa7f9"
 	dummyYnabBudgetID  string = "b25f2ff7-5fba-f332-f4a2-24f32f02f857"
 	dummyYnabSecret    string = "bb97fbf01ebbfbd73fff33bfdcbf7bf30fbfb7f9b5dfea5c5ffb04bb52eb366b"
@@ -55,7 +55,11 @@ func TestRootHandler(t *testing.T) {
 		activeConnector = testConnector{
 			AuthorizationURL: expectedURL,
 		}
+		testLogBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
+		testLogBuffer.ExpectLog("Received HTTP request to /")
+		testLogBuffer.ExpectLog("We are not yet authorized, redirecting to https://example.com/")
 		responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
+		testLogBuffer.TestLogValues(t)
 		tools.AssertStatus(t, http.StatusFound, responseRecorder.Code)
 		got, _ := responseRecorder.Result().Location()
 		if got.String() != expectedURL {
@@ -75,8 +79,13 @@ func TestRootHandler(t *testing.T) {
 			BodyString(`{"transactions":[{"account_id":"f2b9e2c0-f927-2aa3-f2cf-f227d22fa7f9","date":"2020-05-05","amount":10000,"cleared":"cleared","approved":true,"payee_id":null,"payee_name":"payee-name","category_id":null,"memo":null,"flag_color":null,"import_id":"import-id"}]}`)
 		connector := testConnector{}
 		connector.GetTransactions(goodIban)
+		testLogBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
+		testLogBuffer.ExpectLog("Received HTTP request to /")
+		testLogBuffer.ExpectLog("Received 1 transactions from bank\nPosting transactions to YNAB")
+		testLogBuffer.ExpectLog("Ending run")
 		responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
 		tools.AssertStatus(t, http.StatusOK, responseRecorder.Code)
+		testLogBuffer.TestLogValues(t)
 	})
 }
 
@@ -105,7 +114,7 @@ func TestGetConnector(t *testing.T) {
 		if result != nil {
 			t.Errorf("IBAN %v not detected as invalid", badIban)
 		}
-		if err.Error() != "Account number is not recognized by any connector" {
+		if err.Error() != "Account number is not recognized by any connector, cannot proceed without a compatible connector" {
 			t.Error("Invalid IBAN did not return desired error")
 		}
 	})

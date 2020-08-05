@@ -3,7 +3,6 @@ package dbapi
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -53,9 +52,9 @@ func CheckParams() (bool, error) {
 		"dbAPIBaseURL":   dbAPIBaseURL,
 		"redirectURL":    redirectURL,
 	}
-	for _, v := range params {
+	for i, v := range params {
 		if v == "" {
-			return false, errors.New("missing/empty connector parameter detected")
+			return false, fmt.Errorf("missing/empty connector parameter detected. Cannot proceed without a value for %v", i)
 		}
 	}
 	return true, nil
@@ -70,7 +69,10 @@ func AuthorizedHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("500 - Deutsche Bank returned an empty code."))
 		return
 	}
-	UpdateToken(code)
+	err := UpdateToken(code)
+	if err != nil {
+		log.Print(err)
+	}
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
@@ -89,12 +91,13 @@ func dbAPIRequest(path string, recipient interface{}) error {
 }
 
 // UpdateToken updates the current token using an update code.
-func UpdateToken(code string) {
+func UpdateToken(code string) error {
 	tok, err := oauth2Conf.Exchange(oauth2HttpContext, code)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	SetCurrentToken(tok)
+	return nil
 }
 
 // SetCurrentToken sets the currently active token. Mostly useful for tests.
