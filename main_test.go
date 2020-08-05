@@ -56,6 +56,7 @@ func TestRootHandler(t *testing.T) {
 			AuthorizationURL: expectedURL,
 		}
 		testLogBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
+		defer testLogBuffer.Clear()
 		testLogBuffer.ExpectLog("Received 2HTTP request to /")
 		testLogBuffer.ExpectLog("We are not yet authorized, redirecting to https://example.com/")
 		responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)

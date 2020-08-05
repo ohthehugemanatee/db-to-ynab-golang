@@ -53,6 +53,11 @@ func (b *testLogBuffer) TestLogValues(t *testing.T) {
 	}
 }
 
+func (b *testLogBuffer) Clear() {
+	b.ExpectBuffer = &bytes.Buffer{}
+	b.GotBuffer = &bytes.Buffer{}
+}
+
 func CreateAndActivateEmptyTestLogBuffer() *testLogBuffer {
 	logBuffer := testLogBuffer{
 		&bytes.Buffer{},
