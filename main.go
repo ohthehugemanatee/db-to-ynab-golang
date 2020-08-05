@@ -96,7 +96,7 @@ func GetConnector(accountNumber string) (BankConnector, error) {
 // PostTransactionsToYNAB posts transactions to YNAB.
 func postTransactionsToYNAB(accessToken string, budgetID string, transactions []ynabTransaction) error {
 	c := ynab.NewClient(accessToken)
-	_, err := c.Transaction().BulkCreateTransactions(budgetID, transactions)
+	_, err := c.Transaction().CreateTransactions(budgetID, transactions)
 	if err != nil {
 		return err
 	}
