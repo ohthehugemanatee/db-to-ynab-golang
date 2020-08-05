@@ -69,7 +69,10 @@ func AuthorizedHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("500 - Deutsche Bank returned an empty code."))
 		return
 	}
-	UpdateToken(code)
+	err := UpdateToken(code)
+	if err != nil {
+		log.Print(err)
+	}
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
@@ -88,12 +91,13 @@ func dbAPIRequest(path string, recipient interface{}) error {
 }
 
 // UpdateToken updates the current token using an update code.
-func UpdateToken(code string) {
+func UpdateToken(code string) error {
 	tok, err := oauth2Conf.Exchange(oauth2HttpContext, code)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	SetCurrentToken(tok)
+	return nil
 }
 
 // SetCurrentToken sets the currently active token. Mostly useful for tests.
