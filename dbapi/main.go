@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -84,9 +83,6 @@ func dbAPIRequest(path string, recipient interface{}) error {
 	}
 	defer request.Body.Close()
 	json.NewDecoder(request.Body).Decode(&recipient)
-	bodyBytes, _ := ioutil.ReadAll(request.Body)
-	bodyString := string(bodyBytes)
-	fmt.Print(bodyString)
 	return nil
 }
 
