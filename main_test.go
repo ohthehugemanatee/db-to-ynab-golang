@@ -15,7 +15,7 @@ import (
 
 const (
 	goodIban           string = "DE49500105178844289951"
-	badIban            string = "DE10010000000000006136"
+	badIban            string = "DE10010000000111106136"
 	dummyYnabAccountID string = "f2b9e2c0-f927-2aa3-f2cf-f227d22fa7f9"
 	dummyYnabBudgetID  string = "b25f2ff7-5fba-f332-f4a2-24f32f02f857"
 	dummyYnabSecret    string = "bb97fbf01ebbfbd73fff33bfdcbf7bf30fbfb7f9b5dfea5c5ffb04bb52eb366b"
