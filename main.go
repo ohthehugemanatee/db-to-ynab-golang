@@ -78,7 +78,7 @@ func GetConnector(accountNumber string) (BankConnector, error) {
 			return connector, nil
 		}
 	}
-	return nil, errors.New("Account number is not recognized by any connector")
+	return nil, errors.New("Account number is not recognized by any connector, cannot proceed without a compatible connector")
 }
 
 // PostTransactionsToYNAB posts transactions to YNAB.
