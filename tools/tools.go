@@ -28,11 +28,13 @@ func AssertStatus(t *testing.T, expected int, got int) {
 	}
 }
 
+// An in-memory log store for testing log outputs.
 type testLogBuffer struct {
 	GotBuffer    *bytes.Buffer
 	ExpectBuffer *bytes.Buffer
 }
 
+// Add a log string to the list of expected log outputs.
 func (b testLogBuffer) ExpectLog(s string) error {
 	_, err := b.ExpectBuffer.WriteString(s)
 	if err != nil {
@@ -45,6 +47,7 @@ func (b testLogBuffer) ExpectLog(s string) error {
 	return nil
 }
 
+// Tests the received log against the expectations.
 func (b *testLogBuffer) TestLogValues(t *testing.T) {
 	if strings.Compare(b.GotBuffer.String(), b.ExpectBuffer.String()) != 0 {
 		gotLog := b.GotBuffer.String()
