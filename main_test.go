@@ -105,7 +105,7 @@ func TestGetConnector(t *testing.T) {
 		if result != nil {
 			t.Errorf("IBAN %v not detected as invalid", badIban)
 		}
-		if err.Error() != "Account number is not recognized by any connector" {
+		if err.Error() != "Account number is not recognized by any connector, cannot proceed without a compatible connector" {
 			t.Error("Invalid IBAN did not return desired error")
 		}
 	})
