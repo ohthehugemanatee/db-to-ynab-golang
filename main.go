@@ -58,15 +58,22 @@ func main() {
 
 // RootHandler handles HTTP requests to /
 func RootHandler(w http.ResponseWriter, r *http.Request) {
+	log.Print("Received HTTP request to /")
 	if url := activeConnector.Authorize(); url != "" {
+		log.Printf("We are not yet authorized, redirecting to %s", url)
 		http.Redirect(w, r, url, http.StatusFound)
 		return
 	}
 	convertedTransactions, _ := activeConnector.GetTransactions(accountNumber)
-	if len(convertedTransactions) == 0 {
+	transactionsCount := len(convertedTransactions)
+	log.Printf("Received %d transactions from bank", transactionsCount)
+	if transactionsCount == 0 {
+		log.Print("Ending run")
 		return
 	}
+	log.Print("Posting transactions to YNAB")
 	postTransactionsToYNAB(ynabSecret, ynabBudgetID, convertedTransactions)
+	log.Print("Successfully posted to YNAB, ending run")
 }
 
 // GetConnector returns the first connector where the account number is valid.
