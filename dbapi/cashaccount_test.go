@@ -39,6 +39,7 @@ func TestGetTransactions(t *testing.T) {
 		gock.New(dbAPIBaseURL).
 			Get("/gw/dbapi/banking/transactions/v2/").
 			MatchParam("iban", goodIban).
+			ParamPresent("sortBy").
 			MatchParam("limit", "100").
 			MatchHeader("Authorization", "^Bearer (.*)$").
 			Reply(200).

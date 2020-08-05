@@ -50,7 +50,7 @@ func (connector DbCashConnector) IsValidAccountNumber(accountNumber string) (boo
 // GetTransactions gets transactions from DB and returns them in YNAB format.
 func (connector DbCashConnector) GetTransactions(accountNumber string) ([]ynabTransaction, error) {
 	var transactions DbCashTransactionsList
-	err := dbAPIRequest("gw/dbapi/banking/transactions/v2/?limit=100&iban="+accountNumber, &transactions)
+	err := dbAPIRequest("gw/dbapi/banking/transactions/v2/?limit=100&sortBy=bookingDate[DESC]&iban="+accountNumber, &transactions)
 	if err != nil {
 		return nil, err
 	}
