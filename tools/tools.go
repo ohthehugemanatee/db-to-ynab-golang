@@ -56,6 +56,7 @@ func (b *testLogBuffer) TestLogValues(t *testing.T) {
 	}
 }
 
+// CreateAndActivateEmptyTestLogBuffer creates a new TestLogBuffer and applies it to the standard log library.
 func CreateAndActivateEmptyTestLogBuffer() *testLogBuffer {
 	logBuffer := testLogBuffer{
 		&bytes.Buffer{},
