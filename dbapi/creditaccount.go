@@ -54,7 +54,10 @@ func (connector DbCreditConnector) IsValidAccountNumber(accountNumber string) (b
 
 // GetTransactions gets transactions from DB and returns them in YNAB format.
 func (connector DbCreditConnector) GetTransactions(accountnumber string) ([]ynabTransaction, error) {
-	transactions, _ := connector.GetCreditTransactions(accountnumber)
+	transactions, err := connector.GetCreditTransactions(accountnumber)
+	if err != nil {
+		log.Print(err)
+	}
 	return connector.ConvertCreditTransactionsToYNAB(transactions), nil
 }
 
@@ -78,13 +81,13 @@ func (connector DbCreditConnector) GetCreditTransactions(last4 string) (transact
 	params.Add("technicalId", technicalID)
 	params.Add("bookingDateTo", time.Now().Format("2006-01-02"))
 	params.Add("bookingDateFrom", time.Now().AddDate(0, 0, -10).Format("2006-01-02"))
-	err = dbAPIRequest("gw/Dbapi/banking/creditCardTransactions/v1?"+params.Encode(), &transactions)
+	err = dbAPIRequest("gw/dbapi/banking/creditCardTransactions/v1?"+params.Encode(), &transactions)
 	return transactions, err
 }
 
 func (connector DbCreditConnector) getTechnicalID(last4 string) (string, error) {
 	var cardsMap DbCreditCardsList
-	err := dbAPIRequest("gw/Dbapi/banking/creditCards/v1/", &cardsMap)
+	err := dbAPIRequest("gw/dbapi/banking/creditCards/v1/", &cardsMap)
 	if err != nil {
 		return "", err
 	}

@@ -54,13 +54,13 @@ func testSuccessfulGetCreditTransactions(t *testing.T) {
 		Expiry:      time.Now().AddDate(1, 0, 0),
 	}
 	gock.New(dbAPIBaseURL).
-		Get("gw/Dbapi/banking/creditCards/v1/").
+		Get("gw/dbapi/banking/creditCards/v1/").
 		MatchHeader("Authorization", "^Bearer (.*)$").
 		Reply(200).
 		BodyString(cardListResponse)
 
 	gock.New(dbAPIBaseURL).
-		Get("gw/Dbapi/banking/creditCardTransactions/v1").
+		Get("gw/dbapi/banking/creditCardTransactions/v1").
 		MatchParam("technicalId", technicalID).
 		MatchParam("bookingDateTo", time.Now().Format("2006-01-02")).
 		MatchParam("bookingDateFrom", time.Now().AddDate(0, 0, -10).Format("2006-01-02")).
@@ -87,7 +87,7 @@ func testFailingGetCreditTransactions(t *testing.T) {
 		Expiry:      time.Now().AddDate(1, 0, 0),
 	}
 	gock.New(dbAPIBaseURL).
-		Get("gw/Dbapi/banking/creditCards/v1/").
+		Get("gw/dbapi/banking/creditCards/v1/").
 		MatchHeader("Authorization", "^Bearer (.*)$").
 		Reply(200).
 		BodyString(cardListResponse)
