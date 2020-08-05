@@ -83,7 +83,7 @@ func (connector DbCashConnector) ConvertCashTransactionsToYNAB(incomingTransacti
 	defer close(resultChannel)
 	for _, transaction := range transactions {
 		go func(t DbCashTransaction) {
-			resultChannel <- connector.ConvertTransactionToYNAB(ynabAccountID, transaction)
+			resultChannel <- connector.ConvertTransactionToYNAB(ynabAccountID, t)
 		}(transaction)
 	}
 	for i := 0; i < len(transactions); i++ {
