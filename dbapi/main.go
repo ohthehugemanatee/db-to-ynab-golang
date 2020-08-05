@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -80,6 +81,11 @@ func dbAPIRequest(path string, recipient interface{}) error {
 	request, err := oauth2Conf.Client(oauth2HttpContext, currentToken).Get(dbAPIBaseURL + path)
 	if err != nil {
 		return err
+	}
+	if request.StatusCode != http.StatusOK {
+		body, _ := ioutil.ReadAll(request.Body)
+		bodyString := string(body)
+		return fmt.Errorf("DB API request returned code %d, body: %s", request.StatusCode, bodyString)
 	}
 	defer request.Body.Close()
 	json.NewDecoder(request.Body).Decode(&recipient)

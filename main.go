@@ -64,7 +64,10 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, url, http.StatusFound)
 		return
 	}
-	convertedTransactions, _ := activeConnector.GetTransactions(accountNumber)
+	convertedTransactions, err := activeConnector.GetTransactions(accountNumber)
+	if err != nil {
+		log.Printf("Failed to get bank transactions: %s", err)
+	}
 	transactionsCount := len(convertedTransactions)
 	log.Printf("Received %d transactions from bank", transactionsCount)
 	if transactionsCount == 0 {
