@@ -72,11 +72,16 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Print("Posting transactions to YNAB")
-	err := postTransactionsToYNAB(ynabSecret, ynabBudgetID, convertedTransactions)
+	createdTransactions, err := postTransactionsToYNAB(ynabSecret, ynabBudgetID, convertedTransactions)
 	if err != nil {
 		log.Print(err)
+		return
 	}
-	log.Print("Ending run")
+	createdCount := len(createdTransactions.TransactionIDs)
+	duplicateCount := len(createdTransactions.DuplicateImportIDs)
+	savedCount := len(createdTransactions.Transactions)
+
+	log.Printf("Posted transactions to YNAB, %d new, %d duplicate, %d saved. Ending run", createdCount, duplicateCount, savedCount)
 }
 
 // GetConnector returns the first connector where the account number is valid.
@@ -94,11 +99,7 @@ func GetConnector(accountNumber string) (BankConnector, error) {
 }
 
 // PostTransactionsToYNAB posts transactions to YNAB.
-func postTransactionsToYNAB(accessToken string, budgetID string, transactions []ynabTransaction) error {
+func postTransactionsToYNAB(accessToken string, budgetID string, transactions []ynabTransaction) (*transaction.CreatedTransactions, error) {
 	c := ynab.NewClient(accessToken)
-	_, err := c.Transaction().CreateTransactions(budgetID, transactions)
-	if err != nil {
-		return err
-	}
-	return nil
+	return c.Transaction().CreateTransactions(budgetID, transactions)
 }

@@ -67,7 +67,7 @@ func TestConvertCashTransactionsToYNAB(t *testing.T) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		expected := string(`[{"account_id":"account-id","date":"2019-11-04","amount":-19050,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Rossmann","category_id":null,"memo":"POS MIT PIN. Mein Drogeriemarkt, Leipziger Str.","flag_color":null,"import_id":"4b57e244083bddaef7036b3f7d55c7cb"}]`)
+		expected := string(`[{"account_id":"account-id","date":"2019-11-05","amount":-22500,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Rewe","category_id":null,"memo":"POS MIT PIN. Lebensmittelhandel, Kölner Str.","flag_color":null,"import_id":"9a78f21363fe716814a0875ea75fa662"},{"account_id":"account-id","date":"2019-11-05","amount":-22500,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Rewe","category_id":null,"memo":"POS MIT PIN. Lebensmittelhandel, Kölner Str.","flag_color":null,"import_id":"9a78f21363fe716814a0875ea75fa662"}]`)
 		if output != expected {
 			t.Errorf("Got wrong value: got %s wanted %s", output, expected)
 		}

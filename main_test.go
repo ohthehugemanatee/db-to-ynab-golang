@@ -72,17 +72,18 @@ func TestRootHandler(t *testing.T) {
 		setDummyYnabData()
 		defer gock.Off()
 		gock.New("https://api.youneedabudget.com/").
-			Post("/v1/budgets/"+dummyYnabBudgetID+"/transactions/bulk").
+			Post("/v1/budgets/"+dummyYnabBudgetID+"/transactions").
 			MatchHeader("Authorization", "Bearer "+dummyYnabSecret).
 			Reply(200).
 			AddHeader("X-Rate-Limit", "36/200").
-			BodyString(`{"transactions":[{"account_id":"f2b9e2c0-f927-2aa3-f2cf-f227d22fa7f9","date":"2020-05-05","amount":10000,"cleared":"cleared","approved":true,"payee_id":null,"payee_name":"payee-name","category_id":null,"memo":null,"flag_color":null,"import_id":"import-id"}]}`)
+			BodyString(`{"data":{"transaction_ids":["string"],"transaction":{"id":"string","date":"2006-01-02","amount":0,"memo":"string","cleared":"cleared","approved":true,"flag_color":"red","account_id":"string","payee_id":"string","category_id":"string","transfer_account_id":"string","transfer_transaction_id":"string","matched_transaction_id":"string","import_id":"string","deleted":true,"account_name":"string","payee_name":"string","category_name":"string","subtransactions":[{"id":"string","transaction_id":"string","amount":0,"memo":"string","payee_id":"string","payee_name":"string","category_id":"string","category_name":"string","transfer_account_id":"string","transfer_transaction_id":"string","deleted":true}]},"transactions":[{"id":"string","date":"2006-01-02","amount":0,"memo":"string","cleared":"cleared","approved":true,"flag_color":"red","account_id":"string","payee_id":"string","category_id":"string","transfer_account_id":"string","transfer_transaction_id":"string","matched_transaction_id":"string","import_id":"string","deleted":true,"account_name":"string","payee_name":"string","category_name":"string","subtransactions":[{"id":"string","transaction_id":"string","amount":0,"memo":"string","payee_id":"string","payee_name":"string","category_id":"string","category_name":"string","transfer_account_id":"string","transfer_transaction_id":"string","deleted":true}]}],"duplicate_import_ids":["string"],"server_knowledge":0}}`)
+
 		connector := testConnector{}
 		connector.GetTransactions(goodIban)
 		testLogBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
 		testLogBuffer.ExpectLog("Received HTTP request to /")
 		testLogBuffer.ExpectLog("Received 1 transactions from bank\nPosting transactions to YNAB")
-		testLogBuffer.ExpectLog("Ending run")
+		testLogBuffer.ExpectLog("Posted transactions to YNAB, 1 new, 1 duplicate, 1 saved. Ending run")
 		responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
 		tools.AssertStatus(t, http.StatusOK, responseRecorder.Code)
 		testLogBuffer.TestLogValues(t)
