@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"regexp"
 	"time"
 
@@ -73,10 +74,11 @@ func (connector DbCreditConnector) GetCreditTransactions(last4 string) (transact
 	if err != nil {
 		return transactions, err
 	}
-	urlParams := "?technicalId=" + technicalID
-	urlParams = urlParams + "&bookingDateTo=" + time.Now().Format("2006-01-02")
-	urlParams = urlParams + "&bookingDateFrom=" + time.Now().AddDate(0, 0, -10).Format("2006-01-02")
-	err = dbAPIRequest("gw/Dbapi/banking/creditCardTransactions/v1"+urlParams, &transactions)
+	params := url.Values{}
+	params.Add("technicalId", technicalID)
+	params.Add("bookingDateTo", time.Now().Format("2006-01-02"))
+	params.Add("bookingDateFrom", time.Now().AddDate(0, 0, -10).Format("2006-01-02"))
+	err = dbAPIRequest("gw/Dbapi/banking/creditCardTransactions/v1?"+params.Encode(), &transactions)
 	return transactions, err
 }
 
