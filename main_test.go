@@ -55,7 +55,11 @@ func TestRootHandler(t *testing.T) {
 		activeConnector = testConnector{
 			AuthorizationURL: expectedURL,
 		}
+		testLogBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
+		testLogBuffer.ExpectLog("Received HTTP request to /")
+		testLogBuffer.ExpectLog("We are not yet authorized, redirecting to https://example.com/")
 		responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
+		testLogBuffer.TestLogValues(t)
 		tools.AssertStatus(t, http.StatusFound, responseRecorder.Code)
 		got, _ := responseRecorder.Result().Location()
 		if got.String() != expectedURL {
