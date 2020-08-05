@@ -45,12 +45,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Printf("Connector %T elected", activeConnector)
 	_, err = activeConnector.CheckParams()
 	if err != nil {
 		log.Fatal(err)
 	}
 	http.HandleFunc("/", RootHandler)
 	http.HandleFunc("/authorized", activeConnector.AuthorizedHandler)
+	log.Print("DB/YNAB sync server started, listening on port 3000.")
 	log.Fatal(http.ListenAndServe(":3000", nil))
 }
 
