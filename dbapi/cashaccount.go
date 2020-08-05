@@ -89,7 +89,7 @@ func (connector DbCashConnector) ConvertCashTransactionsToYNAB(incomingTransacti
 func (connector DbCashConnector) ConvertTransactionToYNAB(accountNumber string, incomingTransaction DbCashTransaction) ynabTransaction {
 	date, err := api.DateFromString(incomingTransaction.BookingDate)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 	importID := tools.CreateImportID(incomingTransaction.ID)
 	transaction := ynabTransaction{
