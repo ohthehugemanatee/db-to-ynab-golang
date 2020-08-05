@@ -83,8 +83,8 @@ I have notified DB about these issues, but if you're helping out you deserve to 
 
 ### Working
 
-* Sync cash accounts (checking, savings). It syncs the last 100 transactions every time you run it. No, you will not get duplicate transactions from these repeats. 
-* Sync credit cards. It syncs the last 30 days of transactions every time you run it.
+* Sync cash accounts (checking, savings). It syncs up to 100 transactions from the last 15 days, every time you run it. No, you will not get duplicate transactions from these repeats. 
+* Sync credit cards. It syncs the last 10 days of transactions every time you run it.
 
 ### TODO
 
