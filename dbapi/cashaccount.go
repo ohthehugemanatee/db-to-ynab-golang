@@ -72,15 +72,16 @@ func (connector DbCashConnector) AuthorizedHandler(w http.ResponseWriter, r *htt
 func (connector DbCashConnector) ConvertCashTransactionsToYNAB(incomingTransactions DbCashTransactionsList, ynabAccountID string) (convertedTransactions []ynabTransaction) {
 	transactions := incomingTransactions.Transactions
 	resultChannel := make(chan ynabTransaction)
+	var convertedTransaction ynabTransaction
 	defer close(resultChannel)
 	for _, transaction := range transactions {
 		go func(t DbCashTransaction) {
 			resultChannel <- connector.ConvertTransactionToYNAB(ynabAccountID, transaction)
 		}(transaction)
-		for i := 0; i < len(transactions); i++ {
-			convertedTransaction := <-resultChannel
-			convertedTransactions = append(convertedTransactions, convertedTransaction)
-		}
+	}
+	for i := 0; i < len(transactions); i++ {
+		convertedTransaction = <-resultChannel
+		convertedTransactions = append(convertedTransactions, convertedTransaction)
 	}
 	return convertedTransactions
 }
