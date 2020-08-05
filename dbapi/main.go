@@ -3,7 +3,6 @@ package dbapi
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -53,9 +52,9 @@ func CheckParams() (bool, error) {
 		"dbAPIBaseURL":   dbAPIBaseURL,
 		"redirectURL":    redirectURL,
 	}
-	for _, v := range params {
+	for i, v := range params {
 		if v == "" {
-			return false, errors.New("missing/empty connector parameter detected")
+			return false, fmt.Errorf("missing/empty connector parameter detected. Cannot proceed without a value for %v", i)
 		}
 	}
 	return true, nil
