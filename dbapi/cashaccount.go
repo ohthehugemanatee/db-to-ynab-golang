@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/go-pascal/iban"
 	"github.com/ohthehugemanatee/db-to-ynab-golang/tools"
@@ -53,6 +54,7 @@ func (connector DbCashConnector) GetTransactions(accountNumber string) ([]ynabTr
 	var transactions DbCashTransactionsList
 	params := url.Values{}
 	params.Add("limit", "100")
+	params.Add("bookingDateFrom", time.Now().AddDate(0, 0, -10).Format("2006-01-02"))
 	params.Add("sortBy", "bookingDate[DESC]")
 	params.Add("iban", accountNumber)
 	err := dbAPIRequest("gw/dbapi/banking/transactions/v2/?"+params.Encode(), &transactions)
