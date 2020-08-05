@@ -3,6 +3,7 @@ package dbapi
 import (
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 
 	"github.com/go-pascal/iban"
@@ -50,7 +51,11 @@ func (connector DbCashConnector) IsValidAccountNumber(accountNumber string) (boo
 // GetTransactions gets transactions from DB and returns them in YNAB format.
 func (connector DbCashConnector) GetTransactions(accountNumber string) ([]ynabTransaction, error) {
 	var transactions DbCashTransactionsList
-	err := dbAPIRequest("gw/dbapi/banking/transactions/v2/?limit=100&sortBy=bookingDate[DESC]&iban="+accountNumber, &transactions)
+	params := url.Values{}
+	params.Add("limit", "100")
+	params.Add("sortBy", "bookingDate[DESC]")
+	params.Add("iban", accountNumber)
+	err := dbAPIRequest("gw/dbapi/banking/transactions/v2/?"+params.Encode(), &transactions)
 	if err != nil {
 		return nil, err
 	}
