@@ -100,13 +100,13 @@ func TestSetCurrentToken(t *testing.T) {
 		}
 	})
 	t.Run("Save a token to the file store and retrieve it later", func(t *testing.T) {
-		type bullshit struct {
+		type dummyToken struct {
 			AccessToken  string
 			TokenType    string
 			RefreshToken string
 			Expiry       string
 		}
-		json, _ := json.Marshal(bullshit{
+		json, _ := json.Marshal(dummyToken{
 			AccessToken:  "accessToken",
 			TokenType:    "tokenType",
 			RefreshToken: "refreshToken",
