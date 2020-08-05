@@ -106,7 +106,7 @@ func (connector DbCreditConnector) ConvertCreditTransactionsToYNAB(incomingTrans
 	accountNumber := ynabAccountID
 	for _, transaction := range transactions {
 		go func(t DbCreditTransaction) {
-			resultChannel <- connector.convertCreditTransactionToYNAB(accountNumber, transaction)
+			resultChannel <- connector.convertCreditTransactionToYNAB(accountNumber, t)
 		}(transaction)
 	}
 	for i := 0; i < len(transactions); i++ {
