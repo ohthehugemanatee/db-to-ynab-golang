@@ -15,6 +15,12 @@ func TestTokenFileStore(t *testing.T) {
 			RefreshToken: "refreshToken",
 			Expiry:       time.Now().String(),
 		},
+		"abc": databaseRecord{
+			AccessToken:  "accessToken2",
+			TokenType:    "tokenType2",
+			RefreshToken: "refreshToken2",
+			Expiry:       time.Now().Add(time.Hour).String(),
+		},
 	}
 	t.Run("Set a token record in a file store", func(t *testing.T) {
 		store := FileSystemTokenStore{}
