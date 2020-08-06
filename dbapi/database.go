@@ -84,19 +84,22 @@ func (f FileSystemTokenStore) rehydrateRecord(record databaseRecord) (oauth2.Tok
 	return rehydratedToken, nil
 }
 
+func (f FileSystemTokenStore) dehydrateToken(token oauth2.Token) databaseRecord {
+	return databaseRecord{
+		AccessToken:  token.AccessToken,
+		TokenType:    token.TokenType,
+		RefreshToken: token.RefreshToken,
+		Expiry:       token.Expiry.Format(dateFormat),
+	}
+}
+
 // UpsertToken inserts a new token or updates an existing one, based on the given id.
 func (f *FileSystemTokenStore) UpsertToken(id string, token oauth2.Token) error {
 	database, err := f.getDatabase()
 	if err != nil {
 		return err
 	}
-	dehydratedRecord := databaseRecord{
-		AccessToken:  token.AccessToken,
-		TokenType:    token.TokenType,
-		RefreshToken: token.RefreshToken,
-		Expiry:       token.Expiry.Format(dateFormat),
-	}
-	database[id] = dehydratedRecord
+	database[id] = f.dehydrateToken(token)
 	f.setDatabase(database)
 	return nil
 }
