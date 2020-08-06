@@ -22,3 +22,8 @@ func (f *FileSystemTokenStore) getTokenRecord() databaseRecord {
 	json.Unmarshal(f.database, &record)
 	return record
 }
+
+func (f *FileSystemTokenStore) setTokenRecord(record databaseRecord) {
+	json, _ := json.Marshal(record)
+	f.database = json
+}
