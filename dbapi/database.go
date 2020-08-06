@@ -3,9 +3,16 @@ package dbapi
 import (
 	"encoding/json"
 	"errors"
+	"time"
+
+	"golang.org/x/oauth2"
 )
 
-const ErrorNotFound string = "Empty result, no record found"
+const (
+	// ErrorNotFound is used when a result is not found.
+	ErrorNotFound string = "Empty result, no record found"
+	dateFormat    string = "2006-01-02 15:04:05.999999999 -0700 MST"
+)
 
 // Storage impelmentation for tokens.
 
@@ -45,4 +52,31 @@ func (f *FileSystemTokenStore) getRecord(id string) (databaseRecord, error) {
 		return record, nil
 	}
 	return databaseRecord{}, errors.New(ErrorNotFound)
+}
+
+// GetToken gets and re-hydrates an oauth2 token from the data store.
+func (f *FileSystemTokenStore) GetToken(id string) (oauth2.Token, error) {
+	record, err := f.getRecord(id)
+	if err != nil {
+		return oauth2.Token{}, err
+	}
+	rehydratedToken, err := f.rehydrateRecord(record)
+	if err != nil {
+		return oauth2.Token{}, err
+	}
+	return rehydratedToken, nil
+}
+
+func (f FileSystemTokenStore) rehydrateRecord(record databaseRecord) (oauth2.Token, error) {
+	expiry, err := time.Parse(dateFormat, record.Expiry)
+	if err != nil {
+		return oauth2.Token{}, err
+	}
+	rehydratedToken := oauth2.Token{
+		AccessToken:  record.AccessToken,
+		TokenType:    record.TokenType,
+		RefreshToken: record.RefreshToken,
+		Expiry:       expiry,
+	}
+	return rehydratedToken, nil
 }

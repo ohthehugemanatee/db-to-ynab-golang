@@ -6,20 +6,24 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"golang.org/x/oauth2"
 )
+
+var startTime time.Time = time.Now().Round(0)
 
 var testDatabase database = database{
 	"123": databaseRecord{
 		AccessToken:  "accessToken",
 		TokenType:    "tokenType",
 		RefreshToken: "refreshToken",
-		Expiry:       time.Now().String(),
+		Expiry:       startTime.Format(dateFormat),
 	},
 	"abc": databaseRecord{
 		AccessToken:  "accessToken2",
 		TokenType:    "tokenType2",
 		RefreshToken: "refreshToken2",
-		Expiry:       time.Now().Add(time.Hour).String(),
+		Expiry:       startTime.Add(time.Hour).Format(dateFormat),
 	},
 }
 
@@ -74,6 +78,28 @@ func TestTokenFileStore(t *testing.T) {
 		want := errors.New(ErrorNotFound)
 		if got.Error() != want.Error() {
 			t.Errorf("Got a wrong error when trying to get a non-existent record. Got %s, wanted %s", got, want)
+		}
+	})
+
+	t.Run("Get an oauth2 token from a data store", func(t *testing.T) {
+		store := getTestDatabaseStore()
+		// Use Round(0) to strip the monotonic clock reading
+		expiry := startTime.Add(time.Hour).Round(0)
+		want := oauth2.Token{
+			AccessToken:  "accessToken2",
+			TokenType:    "tokenType2",
+			RefreshToken: "refreshToken2",
+			Expiry:       expiry,
+		}
+		got, _ := store.GetToken("abc")
+		// Expiry time is different in subtle ways because of how they were generated,
+		// so we compare them separately, then make sure they're identical to compare the rest.
+		if !got.Expiry.Equal(want.Expiry) {
+			t.Errorf("Expiry times are not the same. Got %v wanted %v", got.Expiry, want.Expiry)
+		}
+		got.Expiry = want.Expiry
+		if got != want {
+			t.Errorf("Retrieved an incorrect token. Got %+v, want %+v", got, want)
 		}
 	})
 }
