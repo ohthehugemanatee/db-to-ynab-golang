@@ -55,7 +55,17 @@ func TestAuthorize(t *testing.T) {
 			t.Error("Did not return a refresh token URL.")
 		}
 	})
-
+	t.Run("Authorize returns no url if there's a recent token.", func(t *testing.T) {
+		accountNumber = "dummy-account-number"
+		recentToken := oauth2.Token{
+			Expiry: time.Now().AddDate(0, 0, -5),
+		}
+		tokenStore.UpsertToken(accountNumber, recentToken)
+		got := Authorize()
+		if got != "" {
+			t.Error("Returned a redirect URL though a valid token was still in the store.")
+		}
+	})
 }
 
 func TestAuthorizedHandler(t *testing.T) {
