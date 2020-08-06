@@ -32,8 +32,11 @@ type FileSystemTokenStore struct {
 
 // GetTokenRecord gets a token record.
 func (f *FileSystemTokenStore) getDatabase() (database, error) {
-	var database database
-	err := json.Unmarshal(f.storage, &database)
+	var database = database{}
+	var err error
+	if f.storage != nil {
+		err = json.Unmarshal(f.storage, &database)
+	}
 	return database, err
 }
 
@@ -79,4 +82,21 @@ func (f FileSystemTokenStore) rehydrateRecord(record databaseRecord) (oauth2.Tok
 		Expiry:       expiry,
 	}
 	return rehydratedToken, nil
+}
+
+// UpsertToken inserts a new token or updates an existing one, based on the given id.
+func (f *FileSystemTokenStore) UpsertToken(id string, token oauth2.Token) error {
+	database, err := f.getDatabase()
+	if err != nil {
+		return err
+	}
+	dehydratedRecord := databaseRecord{
+		AccessToken:  token.AccessToken,
+		TokenType:    token.TokenType,
+		RefreshToken: token.RefreshToken,
+		Expiry:       token.Expiry.Format(dateFormat),
+	}
+	database[id] = dehydratedRecord
+	f.setDatabase(database)
+	return nil
 }

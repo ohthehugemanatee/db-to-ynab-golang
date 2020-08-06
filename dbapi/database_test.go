@@ -100,6 +100,29 @@ func TestTokenFileStore(t *testing.T) {
 			t.Errorf("Retrieved an incorrect token. Got %+v, want %+v", got, want)
 		}
 	})
+
+	t.Run("Set an oauth2 token in the data store", func(t *testing.T) {
+		store := FileSystemTokenStore{}
+		id := "testing-id"
+		testToken := oauth2.Token{
+			AccessToken:  "accessToken2",
+			TokenType:    "tokenType2",
+			RefreshToken: "refreshToken2",
+			Expiry:       startTime.Add(time.Hour),
+		}
+		store.UpsertToken(id, testToken)
+		want := testToken
+		got, _ := store.GetToken(id)
+		// Expiry time is different in subtle ways because of how they were generated,
+		// so we compare them separately, then make sure they're identical to compare the rest.
+		if !got.Expiry.Equal(want.Expiry) {
+			t.Errorf("Expiry times are not the same. Got %v wanted %v", got.Expiry, want.Expiry)
+		}
+		got.Expiry = want.Expiry
+		if got != want {
+			t.Errorf("Token was not faithfully saved into the data store. Got %+v, got %+v", got, want)
+		}
+	})
 }
 
 func getTestDatabaseStore() FileSystemTokenStore {
