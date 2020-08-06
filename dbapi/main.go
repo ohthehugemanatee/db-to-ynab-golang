@@ -48,9 +48,7 @@ func Authorize() string {
 	if currentToken.RefreshToken == "" {
 		id := accountNumber
 		token, err := tokenStore.GetToken(id)
-		refreshIfOlderThan := time.Now().AddDate(0, 0, -28)
-		// If we don't have a stored token, or if the one we have is > 28 days old, re-authenticate.
-		if err.Error() == ErrorNotFound || refreshIfOlderThan.After(token.Expiry) {
+		if err.Error() == ErrorNotFound || tokenNeedsRefresh(token) {
 			url := oauth2Conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
 			return url
 		}
@@ -60,6 +58,11 @@ func Authorize() string {
 		SetCurrentToken(&token)
 	}
 	return ""
+}
+
+func tokenNeedsRefresh(token oauth2.Token) bool {
+	refreshIfOlderThan := time.Now().AddDate(0, 0, -28)
+	return refreshIfOlderThan.After(token.Expiry)
 }
 
 // CheckParams ensures that all parameters are provided and fails hard if not.
