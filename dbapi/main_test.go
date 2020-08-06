@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/ohthehugemanatee/db-to-ynab-golang/tools"
 	"golang.org/x/oauth2"
@@ -15,11 +16,11 @@ const (
 )
 
 func TestAuthorize(t *testing.T) {
+	expect := "https://example.com/authorize/me"
+	currentToken = &oauth2.Token{}
+	oauth2Conf.Endpoint.AuthURL = expect
+	oauth2Conf.ClientID = dummyClientID
 	t.Run("Authorize returns a url if there's no refresh token.", func(t *testing.T) {
-		expect := "https://example.com/authorize/me"
-		currentToken.RefreshToken = ""
-		oauth2Conf.Endpoint.AuthURL = expect
-		oauth2Conf.ClientID = dummyClientID
 		got := Authorize()
 		if got == "" {
 			t.Error("Did not return a refresh token URL.")
@@ -44,6 +45,18 @@ func TestAuthorize(t *testing.T) {
 			}
 		}
 	})
+	t.Run("Authorize returns a url if there's an old token.", func(t *testing.T) {
+		accountNumber = "dummy-account-number"
+		oldToken := oauth2.Token{
+			Expiry: time.Now().AddDate(0, 0, -29),
+		}
+		tokenStore.UpsertToken(accountNumber, oldToken)
+		got := Authorize()
+		if got == "" {
+			t.Error("Did not return a refresh token URL.")
+		}
+	})
+
 }
 
 func TestAuthorizedHandler(t *testing.T) {

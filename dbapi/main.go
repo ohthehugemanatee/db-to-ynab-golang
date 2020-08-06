@@ -48,7 +48,8 @@ func Authorize() string {
 	if currentToken.RefreshToken == "" {
 		id := accountNumber
 		token, err := tokenStore.GetToken(id)
-		if err.Error() == ErrorNotFound || tokenNeedsRefresh(token) {
+
+		if (err != nil && err.Error() == ErrorNotFound) || tokenNeedsRefresh(token) {
 			url := oauth2Conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
 			return url
 		}
