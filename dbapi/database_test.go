@@ -37,7 +37,7 @@ func TestTokenFileStore(t *testing.T) {
 		json, _ := json.Marshal(testDatabase)
 		store := FileSystemTokenStore{json}
 
-		got := store.getDatabase()
+		got, _ := store.getDatabase()
 		want := testDatabase
 
 		for i := range got {
@@ -46,4 +46,15 @@ func TestTokenFileStore(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("Return errors when getting a corrupt data store", func(t *testing.T) {
+		corruptData := []byte("I've got a bad feeling about this")
+		store := FileSystemTokenStore{corruptData}
+
+		_, err := store.getDatabase()
+		if err == nil {
+			t.Error("Invalid JSON in the database did not produce an error")
+		}
+	})
+
 }

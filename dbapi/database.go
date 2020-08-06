@@ -19,13 +19,14 @@ type FileSystemTokenStore struct {
 }
 
 // GetTokenRecord gets a token record.
-func (f *FileSystemTokenStore) getDatabase() database {
+func (f *FileSystemTokenStore) getDatabase() (database, error) {
 	var database database
-	json.Unmarshal(f.storage, &database)
-	return database
+	err := json.Unmarshal(f.storage, &database)
+	return database, err
 }
 
 func (f *FileSystemTokenStore) setDatabase(database database) {
+	// Discard error because success is guaranteed by the type and json module.
 	json, _ := json.Marshal(database)
 	f.storage = json
 }
