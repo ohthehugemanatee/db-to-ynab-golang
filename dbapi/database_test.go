@@ -18,7 +18,7 @@ func TestTokenFileStore(t *testing.T) {
 		store := FileSystemTokenStore{}
 		store.setTokenRecord(testToken)
 
-		got := store.database
+		got := store.storage
 		want, _ := json.Marshal(testToken)
 		if bytes.Compare(got, want) != 0 {
 			t.Errorf("Did not find the same token we set in the database. Got %s wanted %s", got, want)
