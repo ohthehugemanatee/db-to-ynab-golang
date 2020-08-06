@@ -100,30 +100,22 @@ func TestSetCurrentToken(t *testing.T) {
 			t.Errorf("Failed retrieving set token. Got %s expected %s", currentToken.AccessToken, tokenValue)
 		}
 	})
-	t.Run("Save a token to the file store and retrieve it later", func(t *testing.T) {
-		type dummyToken struct {
-			AccessToken  string
-			TokenType    string
-			RefreshToken string
-			Expiry       string
-		}
-		json, _ := json.Marshal(dummyToken{
+}
+
+func TestTokenFileStore(t *testing.T) {
+	t.Run("Get a token from the file store", func(t *testing.T) {
+		testToken := databaseRecord{
 			AccessToken:  "accessToken",
 			TokenType:    "tokenType",
 			RefreshToken: "refreshToken",
-			Expiry:       "2006-01-02 15:04:05.999999999 -0700 UTC",
-		})
+			Expiry:       time.Now().String(),
+		}
 
+		json, _ := json.Marshal(testToken)
 		store := FileSystemTokenStore{json}
 
-		got := store.GetToken()
-		timeZone, _ := time.LoadLocation("UTC")
-		want := oauth2.Token{
-			AccessToken:  "accessToken",
-			TokenType:    "tokenType",
-			RefreshToken: "refreshToken",
-			Expiry:       time.Date(2006, time.January, 02, 15, 04, 05, 999999999, timeZone),
-		}
+		got := store.GetTokenRecord()
+		want := testToken
 
 		if got != want {
 			t.Errorf("Did not load the same token we set. Got %s wanted %s", got, want)
