@@ -106,20 +106,3 @@ func UpdateToken(code string) error {
 func SetCurrentToken(token *oauth2.Token) {
 	currentToken = token
 }
-
-type databaseRecord struct {
-	AccessToken  string
-	TokenType    string
-	RefreshToken string
-	Expiry       string
-}
-
-type FileSystemTokenStore struct {
-	database []byte
-}
-
-func (f *FileSystemTokenStore) GetTokenRecord() databaseRecord {
-	var record databaseRecord
-	json.Unmarshal(f.database, &record)
-	return record
-}
