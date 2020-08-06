@@ -3,6 +3,7 @@ package dbapi
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"testing"
 	"time"
 )
@@ -66,6 +67,16 @@ func TestTokenFileStore(t *testing.T) {
 			if got != want {
 				t.Errorf("Got an invalid record from the database. Got %s wanted %s", got, want)
 			}
+		}
+	})
+
+	t.Run("Get an error when trying to get a non-existent record", func(t *testing.T) {
+		store := FileSystemTokenStore{}
+		store.setDatabase(testDatabase)
+		_, got := store.getRecord("Bad command or file name")
+		want := errors.New("Empty result, no record found")
+		if got.Error() != want.Error() {
+			t.Errorf("Got a wrong error when trying to get a non-existent record. Got %s, wanted %s", got, want)
 		}
 	})
 }
