@@ -57,4 +57,15 @@ func TestTokenFileStore(t *testing.T) {
 		}
 	})
 
+	t.Run("Get an individual record from a data store", func(t *testing.T) {
+		store := FileSystemTokenStore{}
+		store.setDatabase(testDatabase)
+		for i := range testDatabase {
+			got, _ := store.getRecord(i)
+			want := testDatabase[i]
+			if got != want {
+				t.Errorf("Got an invalid record from the database. Got %s wanted %s", got, want)
+			}
+		}
+	})
 }
