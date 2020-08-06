@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"golang.org/x/oauth2"
 )
@@ -34,11 +35,29 @@ var oauth2Conf = &oauth2.Config{
 
 var oauth2HttpContext context.Context = context.Background()
 
+// TokenStore is any storage system for Oauth2 tokens.
+type TokenStore interface {
+	GetToken(id string) (oauth2.Token, error)
+	UpsertToken(id string, token oauth2.Token) error
+}
+
+var tokenStore FileSystemTokenStore
+
 // Authorize checks the current token and returns an authorization URL if necessary.
 func Authorize() string {
 	if currentToken.RefreshToken == "" {
-		url := oauth2Conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
-		return url
+		id := accountNumber
+		token, err := tokenStore.GetToken(id)
+		refreshIfOlderThan := time.Now().AddDate(0, 0, -28)
+		// If we don't have a stored token, or if the one we have is > 28 days old, re-authenticate.
+		if err.Error() == ErrorNotFound || refreshIfOlderThan.After(token.Expiry) {
+			url := oauth2Conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
+			return url
+		}
+		if err != nil {
+			log.Printf("Could not get token from storage. %s", err)
+		}
+		SetCurrentToken(&token)
 	}
 	return ""
 }
@@ -99,10 +118,17 @@ func UpdateToken(code string) error {
 		return err
 	}
 	SetCurrentToken(tok)
+	saveCurrentToken(*tok)
 	return nil
 }
 
 // SetCurrentToken sets the currently active token. Mostly useful for tests.
 func SetCurrentToken(token *oauth2.Token) {
 	currentToken = token
+}
+
+// SaveCurrentToken saves the currently active Oauth2 token.
+func saveCurrentToken(token oauth2.Token) {
+	id := accountNumber
+	tokenStore.UpsertToken(id, token)
 }
