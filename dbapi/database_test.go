@@ -8,25 +8,24 @@ import (
 	"time"
 )
 
-func TestTokenFileStore(t *testing.T) {
-	testDatabase := database{
-		"123": databaseRecord{
-			AccessToken:  "accessToken",
-			TokenType:    "tokenType",
-			RefreshToken: "refreshToken",
-			Expiry:       time.Now().String(),
-		},
-		"abc": databaseRecord{
-			AccessToken:  "accessToken2",
-			TokenType:    "tokenType2",
-			RefreshToken: "refreshToken2",
-			Expiry:       time.Now().Add(time.Hour).String(),
-		},
-	}
-	t.Run("Save the DB to a data store", func(t *testing.T) {
-		store := FileSystemTokenStore{}
-		store.setDatabase(testDatabase)
+var testDatabase database = database{
+	"123": databaseRecord{
+		AccessToken:  "accessToken",
+		TokenType:    "tokenType",
+		RefreshToken: "refreshToken",
+		Expiry:       time.Now().String(),
+	},
+	"abc": databaseRecord{
+		AccessToken:  "accessToken2",
+		TokenType:    "tokenType2",
+		RefreshToken: "refreshToken2",
+		Expiry:       time.Now().Add(time.Hour).String(),
+	},
+}
 
+func TestTokenFileStore(t *testing.T) {
+	t.Run("Save the DB to a data store", func(t *testing.T) {
+		store := getTestDatabaseStore()
 		got := store.storage
 		want, _ := json.Marshal(testDatabase)
 		if bytes.Compare(got, want) != 0 {
@@ -59,8 +58,7 @@ func TestTokenFileStore(t *testing.T) {
 	})
 
 	t.Run("Get an individual record from a data store", func(t *testing.T) {
-		store := FileSystemTokenStore{}
-		store.setDatabase(testDatabase)
+		store := getTestDatabaseStore()
 		for i := range testDatabase {
 			got, _ := store.getRecord(i)
 			want := testDatabase[i]
@@ -71,12 +69,17 @@ func TestTokenFileStore(t *testing.T) {
 	})
 
 	t.Run("Get an error when trying to get a non-existent record", func(t *testing.T) {
-		store := FileSystemTokenStore{}
-		store.setDatabase(testDatabase)
+		store := getTestDatabaseStore()
 		_, got := store.getRecord("Bad command or file name")
 		want := errors.New(ErrorNotFound)
 		if got.Error() != want.Error() {
 			t.Errorf("Got a wrong error when trying to get a non-existent record. Got %s, wanted %s", got, want)
 		}
 	})
+}
+
+func getTestDatabaseStore() FileSystemTokenStore {
+	store := FileSystemTokenStore{}
+	store.setDatabase(testDatabase)
+	return store
 }
