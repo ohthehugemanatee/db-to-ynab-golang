@@ -3,6 +3,8 @@ package dbapi
 import (
 	"encoding/json"
 	"errors"
+	"io"
+	"strings"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -27,7 +29,7 @@ type database map[string]databaseRecord
 
 // FileSystemTokenStore is the token storage system.
 type FileSystemTokenStore struct {
-	storage []byte
+	storage io.ReadSeeker
 }
 
 // GetTokenRecord gets a token record.
@@ -35,15 +37,17 @@ func (f *FileSystemTokenStore) getDatabase() (database, error) {
 	var database = database{}
 	var err error
 	if f.storage != nil {
-		err = json.Unmarshal(f.storage, &database)
+		f.storage.Seek(0, 0)
+		err = json.NewDecoder(f.storage).Decode(&database)
 	}
 	return database, err
 }
 
 func (f *FileSystemTokenStore) setDatabase(database database) {
-	// Discard error because success is guaranteed by the type and json module.
-	json, _ := json.Marshal(database)
-	f.storage = json
+	databaseBytes, _ := json.Marshal(database)
+	databaseStrings := string(databaseBytes)
+	f.storage = strings.NewReader(databaseStrings)
+	//	json.NewEncoder(f.storage).Encode(database)
 }
 
 func (f *FileSystemTokenStore) getRecord(id string) (databaseRecord, error) {

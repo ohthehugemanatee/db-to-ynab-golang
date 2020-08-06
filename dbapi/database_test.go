@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -37,29 +38,20 @@ var testToken oauth2.Token = oauth2.Token{
 func TestTokenFileStore(t *testing.T) {
 	t.Run("Save the DB to a data store", func(t *testing.T) {
 		store := getTestDatabaseStore()
-		got := store.storage
-		want, _ := json.Marshal(testDatabase)
-		if bytes.Compare(got, want) != 0 {
-			t.Errorf("Did not find the same database we set. Got %s wanted %s", got, want)
-		}
+		var got database
+		json.NewDecoder(store.storage).Decode(&got)
+		assertEqualDatabases(t, got, testDatabase)
 	})
 
 	t.Run("Get the DB from a data store", func(t *testing.T) {
-		json, _ := json.Marshal(testDatabase)
-		store := FileSystemTokenStore{json}
-
+		store := getTestDatabaseStore()
 		got, _ := store.getDatabase()
 		want := testDatabase
-
-		for i := range got {
-			if got[i] != want[i] {
-				t.Errorf("Did not load the right database. At index %s, got %s wanted %s", i, got, want)
-			}
-		}
+		assertEqualDatabases(t, got, want)
 	})
 
 	t.Run("Return errors when getting a corrupt data store", func(t *testing.T) {
-		corruptData := []byte("I've got a bad feeling about this")
+		corruptData := strings.NewReader("I've got a bad feeling about this")
 		store := FileSystemTokenStore{corruptData}
 
 		_, err := store.getDatabase()
@@ -115,8 +107,17 @@ func assertEqualTokens(t *testing.T, got oauth2.Token, want oauth2.Token) {
 	}
 }
 
+func assertEqualDatabases(t *testing.T, got database, want database) {
+	for i := range got {
+		if got[i] != want[i] {
+			t.Errorf("Database entries do not match. At index %s, got %s wanted %s", i, got, want)
+		}
+	}
+}
+
 func getTestDatabaseStore() FileSystemTokenStore {
-	store := FileSystemTokenStore{}
-	store.setDatabase(testDatabase)
+	testDatabaseJson, _ := json.Marshal(testDatabase)
+	testDatabaseReader := bytes.NewReader(testDatabaseJson)
+	store := FileSystemTokenStore{testDatabaseReader}
 	return store
 }
