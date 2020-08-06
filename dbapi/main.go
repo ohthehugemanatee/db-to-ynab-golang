@@ -130,5 +130,8 @@ func SetCurrentToken(token *oauth2.Token) {
 // SaveCurrentToken saves the currently active Oauth2 token.
 func saveCurrentToken(token oauth2.Token) {
 	id := accountNumber
-	tokenStore.UpsertToken(id, token)
+	err := tokenStore.UpsertToken(id, token)
+	if err != nil {
+		log.Printf("Could not save token to storage: %s", err)
+	}
 }
