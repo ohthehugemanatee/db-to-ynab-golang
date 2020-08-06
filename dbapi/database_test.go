@@ -83,13 +83,11 @@ func TestTokenFileStore(t *testing.T) {
 
 	t.Run("Get an oauth2 token from a data store", func(t *testing.T) {
 		store := getTestDatabaseStore()
-		// Use Round(0) to strip the monotonic clock reading
-		expiry := startTime.Add(time.Hour).Round(0)
 		want := oauth2.Token{
 			AccessToken:  "accessToken2",
 			TokenType:    "tokenType2",
 			RefreshToken: "refreshToken2",
-			Expiry:       expiry,
+			Expiry:       startTime.Add(time.Hour),
 		}
 		got, _ := store.GetToken("abc")
 		// Expiry time is different in subtle ways because of how they were generated,
