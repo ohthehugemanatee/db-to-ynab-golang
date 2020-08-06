@@ -8,32 +8,36 @@ import (
 )
 
 func TestTokenFileStore(t *testing.T) {
-	testToken := databaseRecord{
-		AccessToken:  "accessToken",
-		TokenType:    "tokenType",
-		RefreshToken: "refreshToken",
-		Expiry:       time.Now().String(),
+	testDatabase := database{
+		"123": databaseRecord{
+			AccessToken:  "accessToken",
+			TokenType:    "tokenType",
+			RefreshToken: "refreshToken",
+			Expiry:       time.Now().String(),
+		},
 	}
 	t.Run("Set a token record in a file store", func(t *testing.T) {
 		store := FileSystemTokenStore{}
-		store.setTokenRecord(testToken)
+		store.setDatabase(testDatabase)
 
 		got := store.storage
-		want, _ := json.Marshal(testToken)
+		want, _ := json.Marshal(testDatabase)
 		if bytes.Compare(got, want) != 0 {
-			t.Errorf("Did not find the same token we set in the database. Got %s wanted %s", got, want)
+			t.Errorf("Did not find the same database we set. Got %s wanted %s", got, want)
 		}
 	})
 
 	t.Run("Get a token record from a file store", func(t *testing.T) {
-		json, _ := json.Marshal(testToken)
+		json, _ := json.Marshal(testDatabase)
 		store := FileSystemTokenStore{json}
 
-		got := store.getTokenRecord()
-		want := testToken
+		got := store.getDatabase()
+		want := testDatabase
 
-		if got != want {
-			t.Errorf("Did not load the same token we set. Got %s wanted %s", got, want)
+		for i := range got {
+			if got[i] != want[i] {
+				t.Errorf("Did not load the right database. At index %s, got %s wanted %s", i, got, want)
+			}
 		}
 	})
 }
