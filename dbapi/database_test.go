@@ -27,6 +27,13 @@ var testDatabase database = database{
 	},
 }
 
+var testToken oauth2.Token = oauth2.Token{
+	AccessToken:  "accessToken2",
+	TokenType:    "tokenType2",
+	RefreshToken: "refreshToken2",
+	Expiry:       startTime.Add(time.Hour),
+}
+
 func TestTokenFileStore(t *testing.T) {
 	t.Run("Save the DB to a data store", func(t *testing.T) {
 		store := getTestDatabaseStore()
@@ -83,29 +90,16 @@ func TestTokenFileStore(t *testing.T) {
 
 	t.Run("Get an oauth2 token from a data store", func(t *testing.T) {
 		store := getTestDatabaseStore()
-		want := oauth2.Token{
-			AccessToken:  "accessToken2",
-			TokenType:    "tokenType2",
-			RefreshToken: "refreshToken2",
-			Expiry:       startTime.Add(time.Hour),
-		}
 		got, _ := store.GetToken("abc")
-		assertEqualTokens(t, got, want)
+		assertEqualTokens(t, got, testToken)
 	})
 
 	t.Run("Set an oauth2 token in the data store", func(t *testing.T) {
 		store := FileSystemTokenStore{}
 		id := "testing-id"
-		testToken := oauth2.Token{
-			AccessToken:  "accessToken2",
-			TokenType:    "tokenType2",
-			RefreshToken: "refreshToken2",
-			Expiry:       startTime.Add(time.Hour),
-		}
 		store.UpsertToken(id, testToken)
-		want := testToken
 		got, _ := store.GetToken(id)
-		assertEqualTokens(t, got, want)
+		assertEqualTokens(t, got, testToken)
 	})
 }
 
