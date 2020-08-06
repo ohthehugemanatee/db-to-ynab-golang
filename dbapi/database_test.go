@@ -18,7 +18,7 @@ func TestTokenFileStore(t *testing.T) {
 		json, _ := json.Marshal(testToken)
 		store := FileSystemTokenStore{json}
 
-		got := store.GetTokenRecord()
+		got := store.getTokenRecord()
 		want := testToken
 
 		if got != want {
