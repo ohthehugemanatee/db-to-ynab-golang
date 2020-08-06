@@ -5,6 +5,8 @@ import (
 	"errors"
 )
 
+const ErrorNotFound string = "Empty result, no record found"
+
 // Storage impelmentation for tokens.
 
 type databaseRecord struct {
@@ -42,5 +44,5 @@ func (f *FileSystemTokenStore) getRecord(id string) (databaseRecord, error) {
 	if record, ok := database[id]; ok {
 		return record, nil
 	}
-	return databaseRecord{}, errors.New("Empty result, no record found")
+	return databaseRecord{}, errors.New(ErrorNotFound)
 }
