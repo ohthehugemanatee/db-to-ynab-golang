@@ -22,7 +22,7 @@ func TestTokenFileStore(t *testing.T) {
 			Expiry:       time.Now().Add(time.Hour).String(),
 		},
 	}
-	t.Run("Set a token record in a file store", func(t *testing.T) {
+	t.Run("Save the DB to a data store", func(t *testing.T) {
 		store := FileSystemTokenStore{}
 		store.setDatabase(testDatabase)
 
@@ -33,7 +33,7 @@ func TestTokenFileStore(t *testing.T) {
 		}
 	})
 
-	t.Run("Get a token record from a file store", func(t *testing.T) {
+	t.Run("Get the DB from a data store", func(t *testing.T) {
 		json, _ := json.Marshal(testDatabase)
 		store := FileSystemTokenStore{json}
 
