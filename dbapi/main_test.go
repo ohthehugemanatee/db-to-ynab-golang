@@ -1,11 +1,9 @@
 package dbapi
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/url"
 	"testing"
-	"time"
 
 	"github.com/ohthehugemanatee/db-to-ynab-golang/tools"
 	"golang.org/x/oauth2"
@@ -99,28 +97,6 @@ func TestSetCurrentToken(t *testing.T) {
 		if currentToken.AccessToken != tokenValue {
 			t.Errorf("Failed retrieving set token. Got %s expected %s", currentToken.AccessToken, tokenValue)
 		}
-	})
-}
-
-func TestTokenFileStore(t *testing.T) {
-	t.Run("Get a token from the file store", func(t *testing.T) {
-		testToken := databaseRecord{
-			AccessToken:  "accessToken",
-			TokenType:    "tokenType",
-			RefreshToken: "refreshToken",
-			Expiry:       time.Now().String(),
-		}
-
-		json, _ := json.Marshal(testToken)
-		store := FileSystemTokenStore{json}
-
-		got := store.GetTokenRecord()
-		want := testToken
-
-		if got != want {
-			t.Errorf("Did not load the same token we set. Got %s wanted %s", got, want)
-		}
-
 	})
 }
 
