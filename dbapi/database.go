@@ -11,19 +11,21 @@ type databaseRecord struct {
 	Expiry       string
 }
 
+type database map[string]databaseRecord
+
 // FileSystemTokenStore is the token storage system.
 type FileSystemTokenStore struct {
 	storage []byte
 }
 
 // GetTokenRecord gets a token record.
-func (f *FileSystemTokenStore) getTokenRecord() databaseRecord {
-	var record databaseRecord
-	json.Unmarshal(f.storage, &record)
-	return record
+func (f *FileSystemTokenStore) getDatabase() database {
+	var database database
+	json.Unmarshal(f.storage, &database)
+	return database
 }
 
-func (f *FileSystemTokenStore) setTokenRecord(record databaseRecord) {
-	json, _ := json.Marshal(record)
+func (f *FileSystemTokenStore) setDatabase(database database) {
+	json, _ := json.Marshal(database)
 	f.storage = json
 }
