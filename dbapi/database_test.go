@@ -100,7 +100,6 @@ func TestEncryptionFunctions(t *testing.T) {
 	key := generateEncryptionKey()
 	plainText := []byte("I'm afraid the deflector shield will be quite operational when your friends arrive")
 	encryptedText, err := EncryptedReadSeeker{}.encrypt(plainText, key)
-
 	t.Run("Test encrypting text", func(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
@@ -120,30 +119,33 @@ func TestEncryptionFunctions(t *testing.T) {
 			t.Errorf("Unexpected error: %s", err)
 		}
 	})
-	t.Run("Test Read method", func(t *testing.T) {
-		encryptedTextReader := bytes.NewReader(encryptedText)
-		byteLengthToRead := 20
+
+	encryptedTextReader := bytes.NewReader(encryptedText)
+	plainTextReader := bytes.NewReader(plainText)
+	testReadSeeker := EncryptedReadSeeker{key, encryptedTextReader, 0}
+	byteLengthToRead := 20
+	t.Run("Read method should return specified number of bytes", func(t *testing.T) {
 		got := make([]byte, byteLengthToRead)
-		testReadSeeker := EncryptedReadSeeker{key, encryptedTextReader, 0}
 		_, err := testReadSeeker.Read(got)
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
-		textByteReader := bytes.NewReader(plainText)
 		want := make([]byte, byteLengthToRead)
-		_, err = textByteReader.Read(want)
+		_, err = plainTextReader.Read(want)
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
 		assertEqualBytes(t, got, want)
+	})
+	t.Run("Read method should keep a consistent position between invocations", func(t *testing.T) {
 		// Try reading again for the rest of the value.
-		gotMore := make([]byte, byteLengthToRead)
-		_, err = testReadSeeker.Read(gotMore)
+		got := make([]byte, byteLengthToRead)
+		_, err = testReadSeeker.Read(got)
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
-		wantMore := make([]byte, byteLengthToRead)
-		_, err = textByteReader.Read(wantMore)
+		want := make([]byte, byteLengthToRead)
+		_, err = plainTextReader.Read(want)
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
