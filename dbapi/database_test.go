@@ -128,7 +128,8 @@ func TestEncryptionFunctions(t *testing.T) {
 		encryptedTextReader := bytes.NewReader(encryptedText)
 		byteLengthToRead := 20
 		got := make([]byte, byteLengthToRead)
-		_, err := EncryptedReadSeeker{key, encryptedTextReader}.Read(got)
+		testReadSeeker := EncryptedReadSeeker{key, encryptedTextReader, 0}
+		_, err := testReadSeeker.Read(got)
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
@@ -142,6 +143,22 @@ func TestEncryptionFunctions(t *testing.T) {
 			gotString := string(got)
 			wantString := string(want)
 			t.Errorf("Reading through encryption did not match reading without encryption. Got %s wanted %s", gotString, wantString)
+		}
+		// Try reading again for the rest of the value.
+		gotMore := make([]byte, byteLengthToRead)
+		_, err = testReadSeeker.Read(gotMore)
+		if err != nil {
+			t.Errorf("Unexpected error: %s", err)
+		}
+		wantMore := make([]byte, byteLengthToRead)
+		_, err = textByteReader.Read(wantMore)
+		if err != nil {
+			t.Errorf("Unexpected error: %s", err)
+		}
+		if bytes.Compare(gotMore, wantMore) != 0 {
+			gotMoreString := string(gotMore)
+			wantMoreString := string(wantMore)
+			t.Errorf("Seek position was not maintained between reads. Got %s wanted %s", gotMoreString, wantMoreString)
 		}
 	})
 }

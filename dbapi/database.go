@@ -116,7 +116,8 @@ func (f *FileSystemTokenStore) UpsertToken(id string, token oauth2.Token) error 
 type EncryptedReadSeeker struct {
 	// The key should be the AES key, either 16, 24, or 32 bytes to select AES-128, AES-192, or AES-256.
 	key     []byte
-	storage io.Reader
+	storage io.ReadSeeker
+	pos     int64
 }
 
 func (e EncryptedReadSeeker) encrypt(plaintext []byte, key []byte) ([]byte, error) {
@@ -152,7 +153,8 @@ func (e EncryptedReadSeeker) decrypt(ciphertext []byte, key []byte) ([]byte, err
 	return gcm.Open(nil, nonce, ciphertext, nil)
 }
 
-func (e EncryptedReadSeeker) Read(p []byte) (n int, err error) {
+func (e *EncryptedReadSeeker) Read(p []byte) (n int, err error) {
+	e.storage.Seek(0, 0)
 	encryptedStorage, err := ioutil.ReadAll(e.storage)
 	if err != nil {
 		return 0, err
@@ -162,7 +164,9 @@ func (e EncryptedReadSeeker) Read(p []byte) (n int, err error) {
 		return 0, err
 	}
 	byteReader := bytes.NewReader(decryptedStorage)
-	return byteReader.Read(p)
+	bytesRead, err := byteReader.ReadAt(p, e.pos)
+	e.pos = e.pos + int64(bytesRead)
+	return bytesRead, err
 }
 
 /*
