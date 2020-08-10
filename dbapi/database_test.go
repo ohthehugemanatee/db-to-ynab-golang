@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"math/rand"
 	"strings"
 	"testing"
 	"time"
@@ -93,6 +94,43 @@ func TestTokenFileStore(t *testing.T) {
 		got, _ := store.GetToken(id)
 		assertEqualTokens(t, got, testToken)
 	})
+}
+
+func TestEncryptionFunctions(t *testing.T) {
+	key := generateEncryptionKey()
+	plainText := []byte("I'm afraid the deflector shield will be quite operational when your friends arrive")
+	encryptedText, err := FileSystemTokenStore{}.encrypt(plainText, key)
+
+	t.Run("Test encrypting text", func(t *testing.T) {
+		if err != nil {
+			t.Errorf("Unexpected error: %s", err)
+		}
+		if len(encryptedText) == 0 {
+			t.Errorf("Empty encrypted text returned")
+		}
+		if bytes.Compare(plainText, encryptedText) == 0 {
+			stringText := string(encryptedText)
+			t.Errorf("Text was not encrypted! Output: %s", stringText)
+		}
+	})
+	t.Run("Test decrypting text", func(t *testing.T) {
+		decryptedText, err := FileSystemTokenStore{}.decrypt(encryptedText, key)
+		if bytes.Compare(decryptedText, plainText) != 0 {
+			stringInput := string(plainText)
+			stringOutput := string(decryptedText)
+			t.Errorf("Decrypted text did not match encryption input. Input: %s, Output: %s", stringInput, stringOutput)
+		}
+		if err != nil {
+			t.Errorf("Unexpected error: %s", err)
+		}
+	})
+}
+
+func generateEncryptionKey() []byte {
+	key := make([]byte, 32)
+	rand.Seed(time.Now().UnixNano())
+	rand.Read(key)
+	return key
 }
 
 func assertEqualTokens(t *testing.T, got oauth2.Token, want oauth2.Token) {
