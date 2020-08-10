@@ -187,8 +187,8 @@ func assertEqualDatabases(t *testing.T, got database, want database) {
 }
 
 func getTestDatabaseStore() FileSystemTokenStore {
-	testDatabaseJson, _ := json.Marshal(testDatabase)
-	testDatabaseReader := bytes.NewReader(testDatabaseJson)
+	testDatabaseJSON, _ := json.Marshal(testDatabase)
+	testDatabaseReader := bytes.NewReader(testDatabaseJSON)
 	store := FileSystemTokenStore{testDatabaseReader}
 	return store
 }
