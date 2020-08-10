@@ -122,11 +122,11 @@ func TestEncryptionFunctions(t *testing.T) {
 
 	encryptedTextReader := bytes.NewReader(encryptedText)
 	plainTextReader := bytes.NewReader(plainText)
-	testReadSeeker := EncryptedReadSeeker{key, encryptedTextReader, 0}
+	testEncryptedReadSeeker := EncryptedReadSeeker{key, encryptedTextReader, 0}
 	byteLengthToRead := 20
 	t.Run("Read method should return specified number of bytes", func(t *testing.T) {
 		got := make([]byte, byteLengthToRead)
-		_, err := testReadSeeker.Read(got)
+		_, err := testEncryptedReadSeeker.Read(got)
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
@@ -140,7 +140,7 @@ func TestEncryptionFunctions(t *testing.T) {
 	t.Run("Read method should keep a consistent position between invocations", func(t *testing.T) {
 		// Try reading again for the rest of the value.
 		got := make([]byte, byteLengthToRead)
-		_, err = testReadSeeker.Read(got)
+		_, err = testEncryptedReadSeeker.Read(got)
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
