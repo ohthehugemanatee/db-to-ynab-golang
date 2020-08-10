@@ -115,11 +115,7 @@ func TestEncryptionFunctions(t *testing.T) {
 	})
 	t.Run("Test decrypting text", func(t *testing.T) {
 		decryptedText, err := EncryptedReadSeeker{}.decrypt(encryptedText, key)
-		if bytes.Compare(decryptedText, plainText) != 0 {
-			stringInput := string(plainText)
-			stringOutput := string(decryptedText)
-			t.Errorf("Decrypted text did not match encryption input. Input: %s, Output: %s", stringInput, stringOutput)
-		}
+		assertEqualBytes(t, decryptedText, plainText)
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
@@ -139,11 +135,7 @@ func TestEncryptionFunctions(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
-		if bytes.Compare(got, want) != 0 {
-			gotString := string(got)
-			wantString := string(want)
-			t.Errorf("Reading through encryption did not match reading without encryption. Got %s wanted %s", gotString, wantString)
-		}
+		assertEqualBytes(t, got, want)
 		// Try reading again for the rest of the value.
 		gotMore := make([]byte, byteLengthToRead)
 		_, err = testReadSeeker.Read(gotMore)
@@ -155,11 +147,7 @@ func TestEncryptionFunctions(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
-		if bytes.Compare(gotMore, wantMore) != 0 {
-			gotMoreString := string(gotMore)
-			wantMoreString := string(wantMore)
-			t.Errorf("Seek position was not maintained between reads. Got %s wanted %s", gotMoreString, wantMoreString)
-		}
+		assertEqualBytes(t, got, want)
 	})
 }
 
@@ -168,6 +156,14 @@ func generateEncryptionKey() []byte {
 	rand.Seed(time.Now().UnixNano())
 	rand.Read(key)
 	return key
+}
+
+func assertEqualBytes(t *testing.T, got []byte, want []byte) {
+	if bytes.Compare(got, want) != 0 {
+		gotString := string(got)
+		wantString := string(want)
+		t.Errorf("Byte arrays did not match. Got %s wanted %s", gotString, wantString)
+	}
 }
 
 func assertEqualTokens(t *testing.T, got oauth2.Token, want oauth2.Token) {
