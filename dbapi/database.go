@@ -1,12 +1,14 @@
 package dbapi
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"io"
+	"io/ioutil"
 	"strings"
 	"time"
 
@@ -111,7 +113,13 @@ func (f *FileSystemTokenStore) UpsertToken(id string, token oauth2.Token) error 
 	return nil
 }
 
-func (f FileSystemTokenStore) encrypt(plaintext []byte, key []byte) ([]byte, error) {
+type EncryptedReadSeeker struct {
+	// The key should be the AES key, either 16, 24, or 32 bytes to select AES-128, AES-192, or AES-256.
+	key     []byte
+	storage io.Reader
+}
+
+func (e EncryptedReadSeeker) encrypt(plaintext []byte, key []byte) ([]byte, error) {
 	c, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -127,7 +135,7 @@ func (f FileSystemTokenStore) encrypt(plaintext []byte, key []byte) ([]byte, err
 	return gcm.Seal(nonce, nonce, plaintext, nil), nil
 }
 
-func (f FileSystemTokenStore) decrypt(ciphertext []byte, key []byte) ([]byte, error) {
+func (e EncryptedReadSeeker) decrypt(ciphertext []byte, key []byte) ([]byte, error) {
 	c, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -143,3 +151,21 @@ func (f FileSystemTokenStore) decrypt(ciphertext []byte, key []byte) ([]byte, er
 	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
 	return gcm.Open(nil, nonce, ciphertext, nil)
 }
+
+func (e EncryptedReadSeeker) Read(p []byte) (n int, err error) {
+	encryptedStorage, err := ioutil.ReadAll(e.storage)
+	if err != nil {
+		return 0, err
+	}
+	decryptedStorage, err := e.decrypt(encryptedStorage, e.key)
+	if err != nil {
+		return 0, err
+	}
+	byteReader := bytes.NewReader(decryptedStorage)
+	return byteReader.Read(p)
+}
+
+/*
+func (e EncryptedReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	// @todo implement this.
+}*/

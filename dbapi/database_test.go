@@ -99,7 +99,7 @@ func TestTokenFileStore(t *testing.T) {
 func TestEncryptionFunctions(t *testing.T) {
 	key := generateEncryptionKey()
 	plainText := []byte("I'm afraid the deflector shield will be quite operational when your friends arrive")
-	encryptedText, err := FileSystemTokenStore{}.encrypt(plainText, key)
+	encryptedText, err := EncryptedReadSeeker{}.encrypt(plainText, key)
 
 	t.Run("Test encrypting text", func(t *testing.T) {
 		if err != nil {
@@ -114,7 +114,7 @@ func TestEncryptionFunctions(t *testing.T) {
 		}
 	})
 	t.Run("Test decrypting text", func(t *testing.T) {
-		decryptedText, err := FileSystemTokenStore{}.decrypt(encryptedText, key)
+		decryptedText, err := EncryptedReadSeeker{}.decrypt(encryptedText, key)
 		if bytes.Compare(decryptedText, plainText) != 0 {
 			stringInput := string(plainText)
 			stringOutput := string(decryptedText)
@@ -122,6 +122,26 @@ func TestEncryptionFunctions(t *testing.T) {
 		}
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
+		}
+	})
+	t.Run("Test Read method", func(t *testing.T) {
+		encryptedTextReader := bytes.NewReader(encryptedText)
+		byteLengthToRead := 20
+		got := make([]byte, byteLengthToRead)
+		_, err := EncryptedReadSeeker{key, encryptedTextReader}.Read(got)
+		if err != nil {
+			t.Errorf("Unexpected error: %s", err)
+		}
+		textByteReader := bytes.NewReader(plainText)
+		want := make([]byte, byteLengthToRead)
+		_, err = textByteReader.Read(want)
+		if err != nil {
+			t.Errorf("Unexpected error: %s", err)
+		}
+		if bytes.Compare(got, want) != 0 {
+			gotString := string(got)
+			wantString := string(want)
+			t.Errorf("Reading through encryption did not match reading without encryption. Got %s wanted %s", gotString, wantString)
 		}
 	})
 }
