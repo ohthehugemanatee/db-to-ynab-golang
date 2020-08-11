@@ -2,9 +2,11 @@ package dbapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,8 +26,7 @@ const (
 // Set the SuT.
 var connector = DbCashConnector{}
 
-func TestGetTransactions(t *testing.T) {
-
+func TestCashTransactions(t *testing.T) {
 	// Set a dummy valid token.
 	currentToken = &oauth2.Token{
 		AccessToken: "ACCESS_TOKEN",
@@ -34,6 +35,12 @@ func TestGetTransactions(t *testing.T) {
 	// Set a dummy YNAB Budget ID.
 	ynabAccountID = "account-id"
 	dbAPIBaseURL = "https://example.com/"
+
+	// Set the expected output transactions
+	expectedRecords := []string{
+		`{"account_id":"account-id","date":"2019-11-05","amount":-22500,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Rewe","category_id":null,"memo":"POS MIT PIN. Lebensmittelhandel, Kölner Str.","flag_color":null,"import_id":"9a78f21363fe716814a0875ea75fa662"}`,
+		`{"account_id":"account-id","date":"2019-11-04","amount":-19050,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Rossmann","category_id":null,"memo":"POS MIT PIN. Mein Drogeriemarkt, Leipziger Str.","flag_color":null,"import_id":"4b57e244083bddaef7036b3f7d55c7cb"}`,
+	}
 	t.Run("Test parsing transactions response from DB", func(t *testing.T) {
 		defer gock.Off()
 		gock.New(dbAPIBaseURL).
@@ -47,18 +54,10 @@ func TestGetTransactions(t *testing.T) {
 		result, _ := connector.GetTransactions(goodIban)
 		marshalledResult, _ := json.Marshal(result)
 		stringResult := string(marshalledResult[:])
-		expected := `[{"account_id":"account-id","date":"2019-11-05","amount":-22500,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Rewe","category_id":null,"memo":"POS MIT PIN. Lebensmittelhandel, Kölner Str.","flag_color":null,"import_id":"9a78f21363fe716814a0875ea75fa662"},{"account_id":"account-id","date":"2019-11-04","amount":-19050,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Rossmann","category_id":null,"memo":"POS MIT PIN. Mein Drogeriemarkt, Leipziger Str.","flag_color":null,"import_id":"4b57e244083bddaef7036b3f7d55c7cb"}]`
-		if stringResult != expected {
-			t.Errorf("Got wrong value: got %s want %s",
-				stringResult, expected)
-		}
+		assertJSONStringContainsRecords(t, stringResult, expectedRecords)
+		assertJSONLengthFromRecords(t, stringResult, expectedRecords)
 	})
-}
-
-func TestConvertCashTransactionsToYNAB(t *testing.T) {
 	t.Run("Test converting cash transactions to ynab format", func(t *testing.T) {
-		ynabAccountID = "account-id"
-		dbAPIBaseURL = "https://example.com/"
 		input := []byte(cashTransactionsResponse)
 		var DbTransactionsList DbCashTransactionsList
 		json.Unmarshal(input, &DbTransactionsList)
@@ -68,10 +67,12 @@ func TestConvertCashTransactionsToYNAB(t *testing.T) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		expected := string(`[{"account_id":"account-id","date":"2019-11-05","amount":-22500,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Rewe","category_id":null,"memo":"POS MIT PIN. Lebensmittelhandel, Kölner Str.","flag_color":null,"import_id":"9a78f21363fe716814a0875ea75fa662"},{"account_id":"account-id","date":"2019-11-04","amount":-19050,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Rossmann","category_id":null,"memo":"POS MIT PIN. Mein Drogeriemarkt, Leipziger Str.","flag_color":null,"import_id":"4b57e244083bddaef7036b3f7d55c7cb"}]`)
-		if output != expected {
-			t.Errorf("Got wrong value: got %s wanted %s", output, expected)
+		expectedRecords := []string{
+			`{"account_id":"account-id","date":"2019-11-05","amount":-22500,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Rewe","category_id":null,"memo":"POS MIT PIN. Lebensmittelhandel, Kölner Str.","flag_color":null,"import_id":"9a78f21363fe716814a0875ea75fa662"}`,
+			`{"account_id":"account-id","date":"2019-11-04","amount":-19050,"cleared":"cleared","approved":false,"payee_id":null,"payee_name":"Rossmann","category_id":null,"memo":"POS MIT PIN. Mein Drogeriemarkt, Leipziger Str.","flag_color":null,"import_id":"4b57e244083bddaef7036b3f7d55c7cb"}`,
 		}
+		assertJSONStringContainsRecords(t, output, expectedRecords)
+		assertJSONLengthFromRecords(t, output, expectedRecords)
 	})
 }
 
@@ -114,4 +115,32 @@ func TestIsValidAccountNumber(t *testing.T) {
 			t.Error("Invalid IBAN returned an error")
 		}
 	})
+}
+
+func assertJSONStringContainsRecords(t *testing.T, output string, expectedRecords []string) {
+	var expectedOutputLength int
+	for i, record := range expectedRecords {
+		expectedOutputLength += len(record)
+		testName := fmt.Sprintf("Check output for transaction %d", i)
+		t.Run(testName, func(t *testing.T) {
+			if !strings.Contains(output, record) {
+				t.Errorf("Expected transaction %d not found in result. Expected %s, got %s", i, record, output)
+			}
+		})
+	}
+}
+
+func assertJSONLengthFromRecords(t *testing.T, output string, expectedRecords []string) {
+	var expectedOutputLength int
+	for _, record := range expectedRecords {
+		expectedOutputLength += len(record)
+	}
+	// output should also have opening and closing square braces
+	expectedOutputLength += 2
+	// output should have a comma after each entry but the last.
+	expectedOutputLength += len(expectedRecords) - 1
+	outputLength := len(output)
+	if expectedOutputLength != outputLength {
+		t.Errorf("Extra characters counted in output. Expected %d, got %d chars in output %s", expectedOutputLength, outputLength, output)
+	}
 }
