@@ -34,4 +34,12 @@ jobs:
       run: go build -v .
 
     - name: Test
-      run: go test -v ./...
+      run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+    - name: Codecov
+      uses: codecov/codecov-action@v1.0.12
+      with:
+        # Directory to search for coverage reports.
+        file: coverage.txt
+        # Specify whether or not CI build should fail if Codecov runs into an error during upload
+        fail_ci_if_error: false
