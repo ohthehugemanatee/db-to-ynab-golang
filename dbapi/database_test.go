@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"math/rand"
 	"strings"
 	"testing"
@@ -146,6 +147,20 @@ func TestEncryptionFunctions(t *testing.T) {
 		}
 		want := make([]byte, byteLengthToRead)
 		_, err = plainTextReader.Read(want)
+		if err != nil {
+			t.Errorf("Unexpected error: %s", err)
+		}
+		assertEqualBytes(t, got, want)
+	})
+	t.Run("Seek method can reset persistent position", func(t *testing.T) {
+		testEncryptedReadSeeker.Seek(0, io.SeekStart)
+		got := make([]byte, byteLengthToRead)
+		_, err := testEncryptedReadSeeker.Read(got)
+		if err != nil {
+			t.Errorf("Unexpected error: %s", err)
+		}
+		want := make([]byte, byteLengthToRead)
+		_, err = plainTextReader.ReadAt(want, 0)
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}

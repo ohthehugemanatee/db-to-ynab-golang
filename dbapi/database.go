@@ -153,13 +153,21 @@ func (e EncryptedReadSeeker) decrypt(ciphertext []byte, key []byte) ([]byte, err
 	return gcm.Open(nil, nonce, ciphertext, nil)
 }
 
-func (e *EncryptedReadSeeker) Read(p []byte) (n int, err error) {
+func (e *EncryptedReadSeeker) getPlainTextValue() ([]byte, error) {
 	e.storage.Seek(0, 0)
 	encryptedStorage, err := ioutil.ReadAll(e.storage)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	decryptedStorage, err := e.decrypt(encryptedStorage, e.key)
+	if err != nil {
+		return nil, err
+	}
+	return decryptedStorage, err
+}
+
+func (e *EncryptedReadSeeker) Read(p []byte) (n int, err error) {
+	decryptedStorage, err := e.getPlainTextValue()
 	if err != nil {
 		return 0, err
 	}
@@ -169,7 +177,25 @@ func (e *EncryptedReadSeeker) Read(p []byte) (n int, err error) {
 	return bytesRead, err
 }
 
-/*
-func (e EncryptedReadSeeker) Seek(offset int64, whence int) (int64, error) {
-	// @todo implement this.
-}*/
+func (e *EncryptedReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	var abs int64
+	switch whence {
+	case io.SeekStart:
+		abs = offset
+	case io.SeekCurrent:
+		abs = e.pos + offset
+	case io.SeekEnd:
+		decryptedStorage, err := e.getPlainTextValue()
+		if err != nil {
+			return 0, err
+		}
+		abs = int64(len(decryptedStorage)) + offset
+	default:
+		return 0, errors.New("bytes.Reader.Seek: invalid whence")
+	}
+	if abs < 0 {
+		return 0, errors.New("bytes.Reader.Seek: negative position")
+	}
+	e.pos = abs
+	return abs, nil
+}
