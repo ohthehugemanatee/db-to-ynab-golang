@@ -2,7 +2,7 @@
 
 An API based sync from Deutsche Bank accounts to You Need a Budget.
 
-![Go](https://github.com/ohthehugemanatee/db-to-ynab-golang/workflows/Go/badge.svg?branch=master)
+![Go](https://github.com/ohthehugemanatee/db-to-ynab-golang/workflows/Go/badge.svg?branch=master) [![Go Report Card](https://goreportcard.com/badge/github.com/ohthehugemanatee/db-to-ynab-golang)](https://goreportcard.com/report/github.com/ohthehugemanatee/db-to-ynab-golang) [![codecov](https://codecov.io/gh/ohthehugemanatee/db-to-ynab-golang/branch/master/graph/badge.svg)](https://codecov.io/gh/ohthehugemanatee/db-to-ynab-golang)
 
 This application is still in active development (see #todo, below), but already works well for home use. Please submit issues as you find them!
 
