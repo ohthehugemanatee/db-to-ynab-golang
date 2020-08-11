@@ -88,6 +88,6 @@ I have notified DB about these issues, but if you're helping out you deserve to 
 
 ### TODO
 
-* refactor tests for clarity
-* more consistent error passing/handling
+* safely persist tokens between runs for multiple accounts
 * sync upcoming transactions which haven't posted yet.
+* 100% code coverage
