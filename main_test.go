@@ -134,6 +134,19 @@ func TestRootHandler(t *testing.T) {
 		testLogBuffer.TestLogValues(t)
 	})
 	t.Run("Test error handling", func(t *testing.T) {
+		setDummyConnector(true)
+		defer resetTestConnectorResponses()
+		testConnectorAuthorizeResponse = ""
+		testErrorMsg := "This is a test error"
+		testConnectorGetTransactionsResponseError = errors.New(testErrorMsg)
+		testLogBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
+		testLogBuffer.ExpectLog("Received HTTP request to /")
+		testLogBuffer.ExpectLog("Failed to get bank transactions: " + testErrorMsg)
+		testLogBuffer.ExpectLog("Received 0 transactions from bank")
+		testLogBuffer.ExpectLog("Ending run")
+		responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
+		tools.AssertStatus(t, http.StatusOK, responseRecorder.Code)
+		testLogBuffer.TestLogValues(t)
 
 	})
 }
