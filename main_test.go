@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -24,39 +24,36 @@ const (
 	badParamsConnectorResponse string = "Bwahaha you will NEVER pass my CheckParams test!"
 )
 
-var AuthorizedHandlerWasHit bool
-
-var getTransactionsResponse []ynabTransaction = []ynabTransaction{}
+var (
+	AuthorizedHandlerWasHit                        bool
+	testConnectorAuthorizeResponse                 string = "https://example.com/"
+	testConnectorCheckParamsError                  error
+	testConnectorIsValidAccountNumberResponse      bool = true
+	testConnectorIsValidAccountNumberResponseError error
+	testConnectorGetTransactionsResponse           []ynabTransaction
+	testConnectorGetTransactionsResponseError      error
+)
 
 type testConnector struct {
-	AuthorizationURL string
 }
 
 func (c testConnector) CheckParams() error {
-	return nil
+	return testConnectorCheckParamsError
 }
 
 func (c testConnector) IsValidAccountNumber(a string) (bool, error) {
-	return true, nil
+	return testConnectorIsValidAccountNumberResponse, testConnectorIsValidAccountNumberResponseError
 }
 
 func (c testConnector) GetTransactions(string) ([]ynabTransaction, error) {
-	return getTransactionsResponse, nil
+	return testConnectorGetTransactionsResponse, testConnectorGetTransactionsResponseError
 }
 func (c testConnector) Authorize() string {
-	return c.AuthorizationURL
+	return testConnectorAuthorizeResponse
 }
 
 func (c testConnector) AuthorizedHandler(http.ResponseWriter, *http.Request) {
 	AuthorizedHandlerWasHit = true
-}
-
-type badParamsConnector struct {
-	testConnector
-}
-
-func (c badParamsConnector) CheckParams() error {
-	return fmt.Errorf(badParamsConnectorResponse)
 }
 
 func TestElectAndConfigureConnector(t *testing.T) {
@@ -76,6 +73,7 @@ func TestElectAndConfigureConnector(t *testing.T) {
 	})
 	t.Run("Test connector election", func(t *testing.T) {
 		setDummyConnector(true)
+		defer resetTestConnectorResponses()
 		logBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
 		logBuffer.ExpectLog("Connector main.testConnector elected")
 		electConnectorOrFatal()
@@ -85,16 +83,11 @@ func TestElectAndConfigureConnector(t *testing.T) {
 		logBuffer.TestLogValues(t)
 	})
 	t.Run("Test connector configuration failure", func(t *testing.T) {
-		activeConnector = nil
-		availableConnectors = []BankConnector{
-			badParamsConnector{
-				testConnector{
-					AuthorizationURL: "https://example.com/",
-				},
-			},
-		}
+		setDummyConnector(false)
+		defer resetTestConnectorResponses()
+		testConnectorCheckParamsError = errors.New(badParamsConnectorResponse)
 		logBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
-		logBuffer.ExpectLog("Connector main.badParamsConnector elected")
+		logBuffer.ExpectLog("Connector main.testConnector elected")
 		logBuffer.ExpectLog("[" + badParamsConnectorResponse + "]")
 		electConnectorOrFatal()
 		checkParamsOrFatal()
@@ -103,11 +96,10 @@ func TestElectAndConfigureConnector(t *testing.T) {
 }
 func TestRootHandler(t *testing.T) {
 	setDummyConnector(true)
+	defer resetTestConnectorResponses()
 	t.Run("Test redirect to authorize url", func(t *testing.T) {
 		expectedURL := "https://example.com/"
-		activeConnector = testConnector{
-			AuthorizationURL: expectedURL,
-		}
+		activeConnector = testConnector{}
 		testLogBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
 		testLogBuffer.ExpectLog("Received HTTP request to /")
 		testLogBuffer.ExpectLog("We are not yet authorized, redirecting to https://example.com/")
@@ -121,6 +113,8 @@ func TestRootHandler(t *testing.T) {
 	})
 	t.Run("Test with valid account", func(t *testing.T) {
 		setDummyConnector(true)
+		defer resetTestConnectorResponses()
+		testConnectorAuthorizeResponse = ""
 		setDummyTransactionResponse()
 		setDummyYnabData()
 		defer gock.Off()
@@ -131,8 +125,7 @@ func TestRootHandler(t *testing.T) {
 			AddHeader("X-Rate-Limit", "36/200").
 			BodyString(`{"data":{"transaction_ids":["string"],"transaction":{"id":"string","date":"2006-01-02","amount":0,"memo":"string","cleared":"cleared","approved":true,"flag_color":"red","account_id":"string","payee_id":"string","category_id":"string","transfer_account_id":"string","transfer_transaction_id":"string","matched_transaction_id":"string","import_id":"string","deleted":true,"account_name":"string","payee_name":"string","category_name":"string","subtransactions":[{"id":"string","transaction_id":"string","amount":0,"memo":"string","payee_id":"string","payee_name":"string","category_id":"string","category_name":"string","transfer_account_id":"string","transfer_transaction_id":"string","deleted":true}]},"transactions":[{"id":"string","date":"2006-01-02","amount":0,"memo":"string","cleared":"cleared","approved":true,"flag_color":"red","account_id":"string","payee_id":"string","category_id":"string","transfer_account_id":"string","transfer_transaction_id":"string","matched_transaction_id":"string","import_id":"string","deleted":true,"account_name":"string","payee_name":"string","category_name":"string","subtransactions":[{"id":"string","transaction_id":"string","amount":0,"memo":"string","payee_id":"string","payee_name":"string","category_id":"string","category_name":"string","transfer_account_id":"string","transfer_transaction_id":"string","deleted":true}]}],"duplicate_import_ids":["string"],"server_knowledge":0}}`)
 
-		connector := testConnector{}
-		connector.GetTransactions(goodIban)
+		activeConnector.GetTransactions(goodIban)
 		testLogBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
 		testLogBuffer.ExpectLog("Received HTTP request to /")
 		testLogBuffer.ExpectLog("Received 1 transactions from bank\nPosting transactions to YNAB")
@@ -141,11 +134,15 @@ func TestRootHandler(t *testing.T) {
 		tools.AssertStatus(t, http.StatusOK, responseRecorder.Code)
 		testLogBuffer.TestLogValues(t)
 	})
+	t.Run("Test error handling", func(t *testing.T) {
+
+	})
 }
 
 func TestAuthorizedHandler(t *testing.T) {
 	t.Run("Hitting the authorization endpoint should hit the authorization handler", func(t *testing.T) {
 		setDummyConnector(true)
+		defer resetTestConnectorResponses()
 		responseRecorder := runDummyRequest(t, "GET", "/authorized", activeConnector.AuthorizedHandler)
 		tools.AssertStatus(t, http.StatusOK, responseRecorder.Code)
 		if AuthorizedHandlerWasHit != true {
@@ -203,9 +200,17 @@ func setDummyConnector(setActiveConnector bool) {
 	}
 	if setActiveConnector {
 		activeConnector = testConnector{}
-		return
 	}
-	activeConnector = nil
+}
+
+func resetTestConnectorResponses() {
+	AuthorizedHandlerWasHit = false
+	testConnectorAuthorizeResponse = "https://example.com/"
+	testConnectorCheckParamsError = nil
+	testConnectorIsValidAccountNumberResponse = true
+	testConnectorIsValidAccountNumberResponseError = nil
+	testConnectorGetTransactionsResponse = []ynabTransaction{}
+	testConnectorGetTransactionsResponseError = nil
 }
 
 func setRealConnectors(unsetActiveConnector bool) {
@@ -222,7 +227,7 @@ func setDummyTransactionResponse() {
 	date, _ := api.DateFromString("2020-05-05")
 	payeeName := string("payee-name")
 	importID := string("import-id")
-	getTransactionsResponse = []ynabTransaction{
+	testConnectorGetTransactionsResponse = []ynabTransaction{
 		{
 			AccountID: dummyYnabAccountID,
 			Date:      date,
