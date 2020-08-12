@@ -42,6 +42,13 @@ var (
 )
 
 func main() {
+	electAndConfigureConnector()
+	registerHandlers()
+	log.Fatal(http.ListenAndServe(networkAddress, nil))
+	log.Print("DB/YNAB sync server started, listening on port 3000.")
+}
+
+func electAndConfigureConnector() {
 	var err error
 	activeConnector, err = GetConnector(accountNumber)
 	if err != nil {
@@ -52,9 +59,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	registerHandlers()
-	log.Fatal(http.ListenAndServe(networkAddress, nil))
-	log.Print("DB/YNAB sync server started, listening on port 3000.")
 }
 
 func registerHandlers() {

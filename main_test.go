@@ -48,6 +48,32 @@ func (c testConnector) AuthorizedHandler(http.ResponseWriter, *http.Request) {
 	AuthorizedHandlerWasHit = true
 }
 
+func TestElectAndConfigureConnector(t *testing.T) {
+	activeConnector = nil
+	availableConnectors = []BankConnector{
+		testConnector{"https://example.com/"},
+	}
+	logBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
+	electAndConfigureConnector()
+	t.Run("Test connector election", func(t *testing.T) {
+		logBuffer.ExpectLog("Connector main.testConnector elected")
+		if activeConnector == nil {
+			t.Error("Connector was not elected")
+		}
+		logBuffer.TestLogValues(t)
+	})
+	t.Run("Test failure in connector election", func(t *testing.T) {
+		availableConnectors = []BankConnector{}
+		logBuffer = tools.CreateAndActivateEmptyTestLogBuffer()
+		electAndConfigureConnector()
+		logBuffer.TestLogValues(t)
+	})
+	t.Run("Test failure in connector configuration", func(t *testing.T) {
+		// @todo
+		// - make a failure connector that can be elected but not configured.
+		// - use it to generate an error.
+	})
+}
 func TestRootHandler(t *testing.T) {
 	setDummyConnector(true)
 	t.Run("Test redirect to authorize url", func(t *testing.T) {
