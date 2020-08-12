@@ -94,6 +94,7 @@ func TestElectAndConfigureConnector(t *testing.T) {
 		logBuffer.TestLogValues(t)
 	})
 }
+
 func TestRootHandler(t *testing.T) {
 	setDummyConnector(true)
 	defer resetTestConnectorResponses()
@@ -213,13 +214,15 @@ func assertGetsConnector(t *testing.T, accountID string, expect BankConnector) {
 }
 
 func runDummyRequest(t *testing.T, verb string, path string, handlerFunc func(w http.ResponseWriter, r *http.Request)) httptest.ResponseRecorder {
+	http.DefaultServeMux = http.NewServeMux()
+	registerHandlers()
 	request, err := http.NewRequest(verb, path, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	responseRecorder := httptest.NewRecorder()
-	handler := http.HandlerFunc(handlerFunc)
-	handler.ServeHTTP(responseRecorder, request)
+	//handler := http.HandlerFunc(handlerFunc)
+	http.DefaultServeMux.ServeHTTP(responseRecorder, request)
 	return *responseRecorder
 }
 
