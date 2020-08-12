@@ -27,7 +27,7 @@ type BankConnector interface {
 	AuthorizedHandler(http.ResponseWriter, *http.Request)
 }
 
-const baseAddress string = ":3000"
+const networkAddress string = ":3000"
 
 var (
 	ynabSecret          string          = os.Getenv("YNAB_SECRET")
@@ -53,7 +53,7 @@ func main() {
 		log.Fatal(err)
 	}
 	registerHandlers()
-	log.Fatal(http.ListenAndServe(baseAddress, nil))
+	log.Fatal(http.ListenAndServe(networkAddress, nil))
 	log.Print("DB/YNAB sync server started, listening on port 3000.")
 }
 
