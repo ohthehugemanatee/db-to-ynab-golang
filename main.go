@@ -27,6 +27,8 @@ type BankConnector interface {
 	AuthorizedHandler(http.ResponseWriter, *http.Request)
 }
 
+const baseAddress string = ":3000"
+
 var (
 	ynabSecret          string          = os.Getenv("YNAB_SECRET")
 	ynabBudgetID        string          = os.Getenv("YNAB_BUDGET_ID")
@@ -50,10 +52,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	registerHandlers()
+	log.Fatal(http.ListenAndServe(baseAddress, nil))
+	log.Print("DB/YNAB sync server started, listening on port 3000.")
+}
+
+func registerHandlers() {
 	http.HandleFunc("/", RootHandler)
 	http.HandleFunc("/authorized", activeConnector.AuthorizedHandler)
-	log.Print("DB/YNAB sync server started, listening on port 3000.")
-	log.Fatal(http.ListenAndServe(":3000", nil))
 }
 
 // RootHandler handles HTTP requests to /
