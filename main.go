@@ -15,8 +15,8 @@ type ynabTransaction = transaction.PayloadTransaction
 
 // BankConnector is the interface for any bank account connection.
 type BankConnector interface {
-	// Checks if all parameters for the connector are valid and present.
-	CheckParams() (bool, error)
+	// Returns an error if any connector parameters are missing/invalid.
+	CheckParams() error
 	// Checks if the account number is valid for this connector.
 	IsValidAccountNumber(string) (bool, error)
 	// Gets YNAB formatted transactions.
@@ -62,7 +62,7 @@ func electConnectorOrFatal() {
 }
 
 func checkParamsOrFatal() {
-	_, err := activeConnector.CheckParams()
+	err := activeConnector.CheckParams()
 	if err != nil {
 		fatalError(err)
 		return

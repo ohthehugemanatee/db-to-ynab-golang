@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -15,11 +16,12 @@ import (
 )
 
 const (
-	goodIban           string = "DE49500105178844289951"
-	badIban            string = "DE10010000000111106136"
-	dummyYnabAccountID string = "f2b9e2c0-f927-2aa3-f2cf-f227d22fa7f9"
-	dummyYnabBudgetID  string = "b25f2ff7-5fba-f332-f4a2-24f32f02f857"
-	dummyYnabSecret    string = "bb97fbf01ebbfbd73fff33bfdcbf7bf30fbfb7f9b5dfea5c5ffb04bb52eb366b"
+	goodIban                   string = "DE49500105178844289951"
+	badIban                    string = "DE10010000000111106136"
+	dummyYnabAccountID         string = "f2b9e2c0-f927-2aa3-f2cf-f227d22fa7f9"
+	dummyYnabBudgetID          string = "b25f2ff7-5fba-f332-f4a2-24f32f02f857"
+	dummyYnabSecret            string = "bb97fbf01ebbfbd73fff33bfdcbf7bf30fbfb7f9b5dfea5c5ffb04bb52eb366b"
+	badParamsConnectorResponse string = "Bwahaha you will NEVER pass my CheckParams test!"
 )
 
 var AuthorizedHandlerWasHit bool
@@ -30,8 +32,8 @@ type testConnector struct {
 	AuthorizationURL string
 }
 
-func (c testConnector) CheckParams() (bool, error) {
-	return true, nil
+func (c testConnector) CheckParams() error {
+	return nil
 }
 
 func (c testConnector) IsValidAccountNumber(a string) (bool, error) {
@@ -47,6 +49,14 @@ func (c testConnector) Authorize() string {
 
 func (c testConnector) AuthorizedHandler(http.ResponseWriter, *http.Request) {
 	AuthorizedHandlerWasHit = true
+}
+
+type badParamsConnector struct {
+	testConnector
+}
+
+func (c badParamsConnector) CheckParams() error {
+	return fmt.Errorf(badParamsConnectorResponse)
 }
 
 func TestElectAndConfigureConnector(t *testing.T) {
@@ -76,10 +86,20 @@ func TestElectAndConfigureConnector(t *testing.T) {
 		}
 		logBuffer.TestLogValues(t)
 	})
-	t.Run("Test failure in connector configuration", func(t *testing.T) {
-		// @todo
-		// - make a failure connector that can be elected but not configured.
-		// - use it to generate an error.
+	t.Run("Test connector configuration failure", func(t *testing.T) {
+		availableConnectors = []BankConnector{
+			badParamsConnector{
+				testConnector{
+					AuthorizationURL: "https://example.com/",
+				},
+			},
+		}
+		logBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
+		logBuffer.ExpectLog("Connector main.badParamsConnector elected")
+		logBuffer.ExpectLog("[" + badParamsConnectorResponse + "]")
+		electConnectorOrFatal()
+		checkParamsOrFatal()
+		logBuffer.TestLogValues(t)
 	})
 }
 func TestRootHandler(t *testing.T) {

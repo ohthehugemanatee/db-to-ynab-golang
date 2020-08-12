@@ -42,7 +42,7 @@ type DbCreditCardsList struct {
 type DbCreditConnector struct{}
 
 // CheckParams ensures that all parameters are provided.
-func (connector DbCreditConnector) CheckParams() (bool, error) {
+func (connector DbCreditConnector) CheckParams() error {
 	return CheckParams()
 }
 
