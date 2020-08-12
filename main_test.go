@@ -117,6 +117,7 @@ func TestRootHandler(t *testing.T) {
 		testConnectorAuthorizeResponse = ""
 		setDummyTransactionResponse()
 		setDummyYnabData()
+		testLogBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
 		defer gock.Off()
 		gock.New("https://api.youneedabudget.com/").
 			Post("/v1/budgets/"+dummyYnabBudgetID+"/transactions").
