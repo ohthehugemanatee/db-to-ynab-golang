@@ -81,7 +81,7 @@ func TestCheckParams(t *testing.T) {
 			valuesWithOneEmpty := values
 			valuesWithOneEmpty[i] = ""
 			setParams(valuesWithOneEmpty)
-			_, err := CheckParams()
+			err := CheckParams()
 			if err == nil {
 				t.Errorf("Missing parameter did not return an error")
 			}
