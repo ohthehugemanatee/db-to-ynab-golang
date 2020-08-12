@@ -50,30 +50,30 @@ func (c testConnector) AuthorizedHandler(http.ResponseWriter, *http.Request) {
 }
 
 func TestElectAndConfigureConnector(t *testing.T) {
-	activeConnector = nil
-	availableConnectors = []BankConnector{
-		testConnector{"https://example.com/"},
-	}
-	logBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
 	// Redefine Fatal Error so we can catch/test it.
 	originalFatalError := fatalError
 	defer func() { fatalError = originalFatalError }()
 	fatalError = func(v ...interface{}) {
 		log.Print(v)
 	}
+	t.Run("Test failure in connector election", func(t *testing.T) {
+		activeConnector = nil
+		availableConnectors = []BankConnector{}
+		logBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
+		logBuffer.ExpectLog("[Account number is not recognized by any connector, cannot proceed without a compatible connector]")
+		electConnectorOrFatal()
+		logBuffer.TestLogValues(t)
+	})
 	t.Run("Test connector election", func(t *testing.T) {
+		availableConnectors = []BankConnector{
+			testConnector{"https://example.com/"},
+		}
+		logBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
 		logBuffer.ExpectLog("Connector main.testConnector elected")
 		electConnectorOrFatal()
 		if activeConnector == nil {
 			t.Error("Connector was not elected")
 		}
-		logBuffer.TestLogValues(t)
-	})
-	t.Run("Test failure in connector election", func(t *testing.T) {
-		logBuffer = tools.CreateAndActivateEmptyTestLogBuffer()
-		logBuffer.ExpectLog("[Account number is not recognized by any connector, cannot proceed without a compatible connector]")
-		availableConnectors = []BankConnector{}
-		electConnectorOrFatal()
 		logBuffer.TestLogValues(t)
 	})
 	t.Run("Test failure in connector configuration", func(t *testing.T) {
