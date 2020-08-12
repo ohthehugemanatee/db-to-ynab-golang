@@ -86,6 +86,7 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Failed to get bank transactions: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	transactionsCount := len(convertedTransactions)
 	log.Printf("Received %d transactions from bank", transactionsCount)
