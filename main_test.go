@@ -145,7 +145,7 @@ func TestRootHandler(t *testing.T) {
 		testLogBuffer.ExpectLog("Received 0 transactions from bank")
 		testLogBuffer.ExpectLog("Ending run")
 		responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
-		tools.AssertStatus(t, http.StatusOK, responseRecorder.Code)
+		tools.AssertStatus(t, http.StatusInternalServerError, responseRecorder.Code)
 		testLogBuffer.TestLogValues(t)
 
 	})

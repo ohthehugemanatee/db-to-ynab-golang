@@ -85,6 +85,7 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	convertedTransactions, err := activeConnector.GetTransactions(accountNumber)
 	if err != nil {
 		log.Printf("Failed to get bank transactions: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 	transactionsCount := len(convertedTransactions)
 	log.Printf("Received %d transactions from bank", transactionsCount)
@@ -96,6 +97,7 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	createdTransactions, err := postTransactionsToYNAB(ynabSecret, ynabBudgetID, convertedTransactions)
 	if err != nil {
 		log.Print(err)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	createdCount := len(createdTransactions.TransactionIDs)
