@@ -39,25 +39,33 @@ var (
 		dbapi.DbCreditConnector{},
 	}
 	activeConnector BankConnector
+	// Fatal error handler defined by variable so we can replace it in tests.
+	fatalError = log.Fatal
 )
 
 func main() {
-	electAndConfigureConnector()
+	electConnectorOrFatal()
+	checkParamsOrFatal()
 	registerHandlers()
-	log.Fatal(http.ListenAndServe(networkAddress, nil))
+	fatalError(http.ListenAndServe(networkAddress, nil))
 	log.Print("DB/YNAB sync server started, listening on port 3000.")
 }
 
-func electAndConfigureConnector() {
+func electConnectorOrFatal() {
 	var err error
 	activeConnector, err = GetConnector(accountNumber)
 	if err != nil {
-		log.Fatal(err)
+		fatalError(err)
+		return
 	}
 	log.Printf("Connector %T elected", activeConnector)
-	_, err = activeConnector.CheckParams()
+}
+
+func checkParamsOrFatal() {
+	_, err := activeConnector.CheckParams()
 	if err != nil {
-		log.Fatal(err)
+		fatalError(err)
+		return
 	}
 }
 

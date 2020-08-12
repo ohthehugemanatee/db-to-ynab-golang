@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -54,18 +55,25 @@ func TestElectAndConfigureConnector(t *testing.T) {
 		testConnector{"https://example.com/"},
 	}
 	logBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
-	electAndConfigureConnector()
+	// Redefine Fatal Error so we can catch/test it.
+	originalFatalError := fatalError
+	defer func() { fatalError = originalFatalError }()
+	fatalError = func(v ...interface{}) {
+		log.Print(v)
+	}
 	t.Run("Test connector election", func(t *testing.T) {
 		logBuffer.ExpectLog("Connector main.testConnector elected")
+		electConnectorOrFatal()
 		if activeConnector == nil {
 			t.Error("Connector was not elected")
 		}
 		logBuffer.TestLogValues(t)
 	})
 	t.Run("Test failure in connector election", func(t *testing.T) {
-		availableConnectors = []BankConnector{}
 		logBuffer = tools.CreateAndActivateEmptyTestLogBuffer()
-		electAndConfigureConnector()
+		logBuffer.ExpectLog("[Account number is not recognized by any connector, cannot proceed without a compatible connector]")
+		availableConnectors = []BankConnector{}
+		electConnectorOrFatal()
 		logBuffer.TestLogValues(t)
 	})
 	t.Run("Test failure in connector configuration", func(t *testing.T) {
