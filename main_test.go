@@ -160,7 +160,7 @@ func TestRootHandler(t *testing.T) {
 			testLogBuffer.ExpectLog("Received HTTP request to /")
 			testLogBuffer.ExpectLog("Received 1 transactions from bank")
 			testLogBuffer.ExpectLog("Posting transactions to YNAB")
-			testLogBuffer.ExpectLog("api: error id=500 name=unknown_api_error detail=Unknown API error")
+			testLogBuffer.ExpectLog("Failed submitting transactions to YNAB: api: error id=500 name=unknown_api_error detail=Unknown API error")
 			responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
 			tools.AssertStatus(t, http.StatusInternalServerError, responseRecorder.Code)
 			testLogBuffer.TestLogValues(t)

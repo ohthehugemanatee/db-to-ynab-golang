@@ -97,7 +97,7 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	log.Print("Posting transactions to YNAB")
 	createdTransactions, err := postTransactionsToYNAB(ynabSecret, ynabBudgetID, convertedTransactions)
 	if err != nil {
-		log.Print(err)
+		log.Printf("Failed submitting transactions to YNAB: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
