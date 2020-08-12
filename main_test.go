@@ -138,10 +138,29 @@ func TestRootHandler(t *testing.T) {
 		t.Run("Test failed getting transaction list", func(t *testing.T) {
 			testErrorMsg := "This is a test error"
 			testConnectorGetTransactionsResponseError = errors.New(testErrorMsg)
-
 			testLogBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
 			testLogBuffer.ExpectLog("Received HTTP request to /")
 			testLogBuffer.ExpectLog("Failed to get bank transactions: " + testErrorMsg)
+			responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
+			tools.AssertStatus(t, http.StatusInternalServerError, responseRecorder.Code)
+			testLogBuffer.TestLogValues(t)
+		})
+		t.Run("Test failed sending to YNAB", func(t *testing.T) {
+			testConnectorGetTransactionsResponseError = nil
+			setDummyTransactionResponse()
+			testErrorMsg := "This is a test error"
+			defer gock.Off()
+			gock.New("https://api.youneedabudget.com/").
+				Post("/v1/budgets/"+dummyYnabBudgetID+"/transactions").
+				MatchHeader("Authorization", "Bearer "+dummyYnabSecret).
+				Reply(http.StatusInternalServerError).
+				AddHeader("X-Rate-Limit", "36/200").
+				BodyString(testErrorMsg)
+			testLogBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
+			testLogBuffer.ExpectLog("Received HTTP request to /")
+			testLogBuffer.ExpectLog("Received 1 transactions from bank")
+			testLogBuffer.ExpectLog("Posting transactions to YNAB")
+			testLogBuffer.ExpectLog("api: error id=500 name=unknown_api_error detail=Unknown API error")
 			responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
 			tools.AssertStatus(t, http.StatusInternalServerError, responseRecorder.Code)
 			testLogBuffer.TestLogValues(t)
