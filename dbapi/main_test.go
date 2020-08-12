@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/ohthehugemanatee/db-to-ynab-golang/tools"
 	"golang.org/x/oauth2"
 	"gopkg.in/h2non/gock.v1"
 )
@@ -51,7 +50,7 @@ func TestAuthorizedHandler(t *testing.T) {
 	t.Run("Failure with an empty \"code\" parameter", func(t *testing.T) {
 		t.Parallel()
 		responseRecorder := runDummyRequest(t, "GET", "/authorized", AuthorizedHandler)
-		tools.AssertStatus(t, http.StatusInternalServerError, responseRecorder.Code)
+		AssertStatus(t, http.StatusInternalServerError, responseRecorder.Code)
 	})
 	t.Run("Pass with a valid code parameter", func(t *testing.T) {
 		defer gock.Off()
@@ -66,7 +65,7 @@ func TestAuthorizedHandler(t *testing.T) {
 			JSON(map[string]string{"access_token": "ACCESS_TOKEN", "token_type": "bearer"})
 
 		responseRecorder := runDummyRequest(t, "GET", "/authorized?code=abcdef", AuthorizedHandler)
-		tools.AssertStatus(t, http.StatusFound, responseRecorder.Code)
+		AssertStatus(t, http.StatusFound, responseRecorder.Code)
 	})
 }
 
@@ -118,5 +117,13 @@ func setTestOauth2Config() {
 			AuthURL:  dbAPIBaseURL + "gw/oidc/authorize",
 			TokenURL: dbAPIBaseURL + "gw/oidc/token",
 		},
+	}
+}
+
+// AssertStatus is a test convenience function to compare HTTP status codes.
+func AssertStatus(t *testing.T, expected int, got int) {
+	if got != expected {
+		t.Errorf("Got wrong status code: got %v want %v",
+			got, expected)
 	}
 }

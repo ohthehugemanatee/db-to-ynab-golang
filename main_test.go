@@ -106,7 +106,7 @@ func TestRootHandler(t *testing.T) {
 		testLogBuffer.ExpectLog("We are not yet authorized, redirecting to https://example.com/")
 		responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
 		testLogBuffer.TestLogValues(t)
-		tools.AssertStatus(t, http.StatusFound, responseRecorder.Code)
+		AssertStatus(t, http.StatusFound, responseRecorder.Code)
 		got, _ := responseRecorder.Result().Location()
 		if got.String() != expectedURL {
 			t.Errorf("Got wrong redirect URL. Got %s want %s", got, expectedURL)
@@ -133,7 +133,7 @@ func TestRootHandler(t *testing.T) {
 			testLogBuffer.ExpectLog("Posting transactions to YNAB")
 			testLogBuffer.ExpectLog("Posted transactions to YNAB, 1 new, 1 duplicate, 1 saved. Ending run")
 			responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
-			tools.AssertStatus(t, http.StatusOK, responseRecorder.Code)
+			AssertStatus(t, http.StatusOK, responseRecorder.Code)
 			testLogBuffer.TestLogValues(t)
 		})
 		t.Run("Test failed getting transaction list", func(t *testing.T) {
@@ -143,7 +143,7 @@ func TestRootHandler(t *testing.T) {
 			testLogBuffer.ExpectLog("Received HTTP request to /")
 			testLogBuffer.ExpectLog("Failed to get bank transactions: " + testErrorMsg)
 			responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
-			tools.AssertStatus(t, http.StatusInternalServerError, responseRecorder.Code)
+			AssertStatus(t, http.StatusInternalServerError, responseRecorder.Code)
 			testLogBuffer.TestLogValues(t)
 		})
 		t.Run("Test failed sending to YNAB", func(t *testing.T) {
@@ -163,7 +163,7 @@ func TestRootHandler(t *testing.T) {
 			testLogBuffer.ExpectLog("Posting transactions to YNAB")
 			testLogBuffer.ExpectLog("Failed submitting transactions to YNAB: api: error id=500 name=unknown_api_error detail=Unknown API error")
 			responseRecorder := runDummyRequest(t, "GET", "/", RootHandler)
-			tools.AssertStatus(t, http.StatusInternalServerError, responseRecorder.Code)
+			AssertStatus(t, http.StatusInternalServerError, responseRecorder.Code)
 			testLogBuffer.TestLogValues(t)
 		})
 	})
@@ -174,7 +174,7 @@ func TestAuthorizedHandler(t *testing.T) {
 		setDummyConnector(true)
 		defer resetTestConnectorResponses()
 		responseRecorder := runDummyRequest(t, "GET", "/authorized", activeConnector.AuthorizedHandler)
-		tools.AssertStatus(t, http.StatusOK, responseRecorder.Code)
+		AssertStatus(t, http.StatusOK, responseRecorder.Code)
 		if AuthorizedHandlerWasHit != true {
 			t.Error("Oauth authorization handler was not hit")
 		}
@@ -276,4 +276,12 @@ func setDummyYnabData() {
 	ynabAccountID = dummyYnabAccountID
 	ynabBudgetID = dummyYnabBudgetID
 	ynabSecret = dummyYnabSecret
+}
+
+// AssertStatus is a test convenience function to compare HTTP status codes.
+func AssertStatus(t *testing.T, expected int, got int) {
+	if got != expected {
+		t.Errorf("Got wrong status code: got %v want %v",
+			got, expected)
+	}
 }

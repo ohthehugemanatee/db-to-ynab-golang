@@ -1,6 +1,8 @@
 package tools
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestCreateImportID(t *testing.T) {
 	input := "You came in that thing? You're braver than I thought"

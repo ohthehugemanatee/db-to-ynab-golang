@@ -21,13 +21,6 @@ func ConvertToMilliunits(value float32) int64 {
 	return int64(value * 1000)
 }
 
-func AssertStatus(t *testing.T, expected int, got int) {
-	if got != expected {
-		t.Errorf("Got wrong status code: got %v want %v",
-			got, expected)
-	}
-}
-
 // An in-memory log store for testing log outputs.
 type testLogBuffer struct {
 	GotBuffer    *bytes.Buffer
