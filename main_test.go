@@ -75,9 +75,7 @@ func TestElectAndConfigureConnector(t *testing.T) {
 		logBuffer.TestLogValues(t)
 	})
 	t.Run("Test connector election", func(t *testing.T) {
-		availableConnectors = []BankConnector{
-			testConnector{"https://example.com/"},
-		}
+		setDummyConnector(true)
 		logBuffer := tools.CreateAndActivateEmptyTestLogBuffer()
 		logBuffer.ExpectLog("Connector main.testConnector elected")
 		electConnectorOrFatal()
@@ -87,6 +85,7 @@ func TestElectAndConfigureConnector(t *testing.T) {
 		logBuffer.TestLogValues(t)
 	})
 	t.Run("Test connector configuration failure", func(t *testing.T) {
+		activeConnector = nil
 		availableConnectors = []BankConnector{
 			badParamsConnector{
 				testConnector{
