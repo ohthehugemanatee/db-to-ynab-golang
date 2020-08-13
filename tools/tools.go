@@ -22,13 +22,13 @@ func ConvertToMilliunits(value float32) int64 {
 }
 
 // An in-memory log store for testing log outputs.
-type testLogBuffer struct {
+type TestLogBuffer struct {
 	GotBuffer    *bytes.Buffer
 	ExpectBuffer *bytes.Buffer
 }
 
 // Add a log string to the list of expected log outputs.
-func (b testLogBuffer) ExpectLog(s string) error {
+func (b TestLogBuffer) ExpectLog(s string) error {
 	_, err := b.ExpectBuffer.WriteString(s)
 	if err != nil {
 		return err
@@ -41,7 +41,7 @@ func (b testLogBuffer) ExpectLog(s string) error {
 }
 
 // Tests the received log against the expectations.
-func (b *testLogBuffer) TestLogValues(t *testing.T) {
+func (b *TestLogBuffer) TestLogValues(t *testing.T) {
 	if strings.Compare(b.GotBuffer.String(), b.ExpectBuffer.String()) != 0 {
 		gotLog := b.GotBuffer.String()
 		wantLog := b.ExpectBuffer.String()
@@ -50,8 +50,8 @@ func (b *testLogBuffer) TestLogValues(t *testing.T) {
 }
 
 // CreateAndActivateEmptyTestLogBuffer creates a new TestLogBuffer and applies it to the standard log library.
-func CreateAndActivateEmptyTestLogBuffer() *testLogBuffer {
-	logBuffer := testLogBuffer{
+func CreateAndActivateEmptyTestLogBuffer() *TestLogBuffer {
+	logBuffer := TestLogBuffer{
 		&bytes.Buffer{},
 		&bytes.Buffer{},
 	}
