@@ -35,7 +35,7 @@ var ynabAccountID string = os.Getenv("YNAB_ACCOUNT_ID")
 type DbCashConnector struct{}
 
 // CheckParams ensures that all parameters are provided.
-func (connector DbCashConnector) CheckParams() (bool, error) {
+func (connector DbCashConnector) CheckParams() error {
 	return CheckParams()
 }
 

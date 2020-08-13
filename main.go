@@ -15,8 +15,8 @@ type ynabTransaction = transaction.PayloadTransaction
 
 // BankConnector is the interface for any bank account connection.
 type BankConnector interface {
-	// Checks if all parameters for the connector are valid and present.
-	CheckParams() (bool, error)
+	// Returns an error if any connector parameters are missing/invalid.
+	CheckParams() error
 	// Checks if the account number is valid for this connector.
 	IsValidAccountNumber(string) (bool, error)
 	// Gets YNAB formatted transactions.
@@ -26,6 +26,8 @@ type BankConnector interface {
 	// Handles an oauth response if necessary
 	AuthorizedHandler(http.ResponseWriter, *http.Request)
 }
+
+const networkAddress string = ":3000"
 
 var (
 	ynabSecret          string          = os.Getenv("YNAB_SECRET")
@@ -37,23 +39,39 @@ var (
 		dbapi.DbCreditConnector{},
 	}
 	activeConnector BankConnector
+	// Fatal error handler defined by variable so we can replace it in tests.
+	fatalError = log.Fatal
 )
 
 func main() {
+	electConnectorOrFatal()
+	checkParamsOrFatal()
+	registerHandlers()
+	fatalError(http.ListenAndServe(networkAddress, nil))
+	log.Print("DB/YNAB sync server started, listening on port 3000.")
+}
+
+func electConnectorOrFatal() {
 	var err error
 	activeConnector, err = GetConnector(accountNumber)
 	if err != nil {
-		log.Fatal(err)
+		fatalError(err)
+		return
 	}
 	log.Printf("Connector %T elected", activeConnector)
-	_, err = activeConnector.CheckParams()
+}
+
+func checkParamsOrFatal() {
+	err := activeConnector.CheckParams()
 	if err != nil {
-		log.Fatal(err)
+		fatalError(err)
+		return
 	}
+}
+
+func registerHandlers() {
 	http.HandleFunc("/", RootHandler)
 	http.HandleFunc("/authorized", activeConnector.AuthorizedHandler)
-	log.Print("DB/YNAB sync server started, listening on port 3000.")
-	log.Fatal(http.ListenAndServe(":3000", nil))
 }
 
 // RootHandler handles HTTP requests to /
@@ -67,6 +85,8 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	convertedTransactions, err := activeConnector.GetTransactions(accountNumber)
 	if err != nil {
 		log.Printf("Failed to get bank transactions: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	transactionsCount := len(convertedTransactions)
 	log.Printf("Received %d transactions from bank", transactionsCount)
@@ -77,7 +97,8 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 	log.Print("Posting transactions to YNAB")
 	createdTransactions, err := postTransactionsToYNAB(ynabSecret, ynabBudgetID, convertedTransactions)
 	if err != nil {
-		log.Print(err)
+		log.Printf("Failed submitting transactions to YNAB: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	createdCount := len(createdTransactions.TransactionIDs)

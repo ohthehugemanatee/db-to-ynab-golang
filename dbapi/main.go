@@ -44,7 +44,7 @@ func Authorize() string {
 }
 
 // CheckParams ensures that all parameters are provided and fails hard if not.
-func CheckParams() (bool, error) {
+func CheckParams() error {
 	var params = map[string]string{
 		"accountNumber":  accountNumber,
 		"dbClientID":     dbClientID,
@@ -54,10 +54,10 @@ func CheckParams() (bool, error) {
 	}
 	for i, v := range params {
 		if v == "" {
-			return false, fmt.Errorf("missing/empty connector parameter detected. Cannot proceed without a value for %v", i)
+			return fmt.Errorf("missing/empty connector parameter detected. Cannot proceed without a value for %v", i)
 		}
 	}
-	return true, nil
+	return nil
 }
 
 // AuthorizedHandler handles the oauth HTTP response.
