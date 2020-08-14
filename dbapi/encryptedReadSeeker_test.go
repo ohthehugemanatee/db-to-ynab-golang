@@ -2,10 +2,15 @@ package dbapi
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
+	"io/ioutil"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
+
+	"golang.org/x/oauth2"
 )
 
 func TestEncryptionFunctions(t *testing.T) {
@@ -77,6 +82,71 @@ func TestEncryptionFunctions(t *testing.T) {
 		}
 		assertEqualBytes(t, got, want)
 	})
+}
+
+func TestEncryptedFilesystemStorageIntegraton(t *testing.T) {
+	tempfile, removeTempFile := createTempFile(t, "")
+	defer removeTempFile()
+	oldTokenStore := tokenStore
+	tokenStore = FileSystemTokenStore{
+		storage: &EncryptedReadSeeker{
+			key:     generateEncryptionKey(),
+			storage: tempfile,
+			pos:     io.SeekStart,
+		},
+	}
+	token := oauth2.Token{
+		AccessToken:  "accessToken",
+		TokenType:    "tokenType",
+		RefreshToken: "refreshToken",
+	}
+	id := "test-id"
+	err := tokenStore.UpsertToken(id, token)
+	if err != nil {
+		t.Errorf("Failed upserting test token: %v", err)
+	}
+	var rehydratedToken oauth2.Token
+
+	t.Run("Make sure tokens are stored encrypted", func(t *testing.T) {
+		fileContents, err := ioutil.ReadFile(tempfile.Name())
+		if err != nil {
+			t.Fatalf("Failed reading file: %v", err)
+		}
+		if fileContents == nil {
+			t.Error("Nothing was written to filesystem storage")
+		}
+		err = json.Unmarshal(fileContents, &rehydratedToken)
+		if err == nil {
+			t.Error("Filesystem storage was in plaintext")
+		}
+	})
+	t.Run("Make sure we can read from encrypted token store", func(t *testing.T) {
+		rehydratedToken, err := tokenStore.GetToken(id)
+		if err != nil {
+			t.Errorf("Could not get a token back from the encrypted filestore: %v", err)
+		}
+		if rehydratedToken != token {
+			t.Errorf("Saved and retrieved token didn't match. Got %v, wanted %v", rehydratedToken, token)
+		}
+	})
+	tokenStore = oldTokenStore
+}
+
+func createTempFile(t *testing.T, initialData string) (*os.File, func()) {
+	t.Helper()
+	tempfile, err := ioutil.TempFile("", "test-db")
+	if err != nil {
+		t.Fatalf("Could not create tempfile %v", err)
+	}
+
+	tempfile.Write([]byte(initialData))
+
+	removeFile := func() {
+		tempfile.Close()
+		os.Remove(tempfile.Name())
+	}
+
+	return tempfile, removeFile
 }
 
 func generateEncryptionKey() []byte {
