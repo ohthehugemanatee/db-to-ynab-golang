@@ -56,10 +56,15 @@ func (e *EncryptedReadSeeker) getPlainTextValue() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	decryptedStorage, err := e.decrypt(encryptedStorage, e.key)
-	if err != nil {
-		return nil, err
+	decryptedStorage := []byte("")
+	// Only encrypt/decrypt if storage is not empty.
+	if len(encryptedStorage) > 0 {
+		decryptedStorage, err = e.decrypt(encryptedStorage, e.key)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	return decryptedStorage, err
 }
 
